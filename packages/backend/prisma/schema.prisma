@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -7,85 +8,227 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 用户表
+// ==================
+// 用户相关
+// ==================
+
 model User {
   id            String   @id @default(uuid())
   email         String   @unique
   username      String   @unique
   passwordHash  String?  @map("password_hash")
+
+  // OAuth 登录
   oauthProvider String?  @map("oauth_provider")
   oauthId       String?  @map("oauth_id")
+
+  // 个人信息
+  displayName   String?  @map("display_name")
+  avatar        String?
+
+  // Gemini API Key (加密存储)
+  geminiApiKey  String?  @map("gemini_api_key")
+
+  // 账户状态
+  isActive      Boolean  @default(true) @map("is_active")
+  isVerified    Boolean  @default(false) @map("is_verified")
+
+  // 时间戳
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
+  lastLoginAt   DateTime? @map("last_login_at")
 
+  // 关系
   workspaces    Workspace[]
   chatSessions  ChatSession[]
+  refreshTokens RefreshToken[]
 
+  @@index([email])
+  @@index([oauthProvider, oauthId])
   @@map("users")
 }
 
-// 工作区表
+// Refresh Token 表
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ==================
+// 工作区相关
+// ==================
+
 model Workspace {
   id          String   @id @default(uuid())
   userId      String   @map("user_id")
+
+  // 基本信息
   name        String
   description String?
-  containerId String?  @map("container_id")
+
+  // 容器信息
+  containerId String?  @unique @map("container_id")
   storagePath String?  @map("storage_path")
-  status      String   @default("active")
+
+  // 状态
+  status      WorkspaceStatus @default(ACTIVE)
+
+  // 配置
+  config      Json?    // 工作区配置（环境变量、工具策略等）
+
+  // 时间戳
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+  lastUsedAt  DateTime? @map("last_used_at")
 
+  // 关系
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   chatSessions ChatSession[]
 
+  @@index([userId])
+  @@index([status])
   @@map("workspaces")
 }
 
-// 聊天会话表
+enum WorkspaceStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+// ==================
+// 聊天相关
+// ==================
+
 model ChatSession {
   id          String   @id @default(uuid())
   workspaceId String   @map("workspace_id")
   userId      String   @map("user_id")
+
+  // 基本信息
   title       String?
+
+  // 模型配置
   model       String   @default("gemini-2.0-flash-exp")
+  modelConfig Json?    @map("model_config") // temperature, topP 等
+
+  // 状态
+  status      ChatSessionStatus @default(ACTIVE)
+
+  // 统计
+  messageCount Int     @default(0) @map("message_count")
+  totalTokens  Int     @default(0) @map("total_tokens")
+
+  // 时间戳
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages  Message[]
+  // 关系
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages       Message[]
   toolExecutions ToolExecution[]
 
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([status])
   @@map("chat_sessions")
 }
 
-// 消息表
+enum ChatSessionStatus {
+  ACTIVE
+  ARCHIVED
+  DELETED
+}
+
 model Message {
   id        String   @id @default(uuid())
   sessionId String   @map("session_id")
-  role      String   // user, model, tool
-  content   Json
-  metadata  Json?
+
+  // 消息内容
+  role      MessageRole
+  content   Json     // Gemini API 的 Content 格式
+
+  // 元数据
+  metadata  Json?    // token 数量、延迟等
+
+  // 时间戳
   createdAt DateTime @default(now()) @map("created_at")
 
+  // 关系
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@index([sessionId])
+  @@index([createdAt])
   @@map("messages")
 }
 
-// 工具执行记录表
+enum MessageRole {
+  USER
+  MODEL
+  TOOL
+}
+
+// ==================
+// 工具执行相关
+// ==================
+
 model ToolExecution {
   id         String   @id @default(uuid())
   sessionId  String   @map("session_id")
+
+  // 工具信息
   toolName   String   @map("tool_name")
   params     Json
   result     Json?
-  status     String   @default("pending") // pending, executing, success, error
-  durationMs Int?     @map("duration_ms")
-  createdAt  DateTime @default(now()) @map("created_at")
 
+  // 状态
+  status     ToolExecutionStatus @default(PENDING)
+  error      String?  // 错误信息
+
+  // 性能
+  durationMs Int?     @map("duration_ms")
+
+  // 时间戳
+  createdAt  DateTime @default(now()) @map("created_at")
+  completedAt DateTime? @map("completed_at")
+
+  // 关系
   session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
+  @@index([sessionId])
+  @@index([toolName])
+  @@index([status])
   @@map("tool_executions")
+}
+
+enum ToolExecutionStatus {
+  PENDING
+  EXECUTING
+  SUCCESS
+  ERROR
+  CANCELLED
+}
+
+// ==================
+// 系统配置相关
+// ==================
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_configs")
 }
