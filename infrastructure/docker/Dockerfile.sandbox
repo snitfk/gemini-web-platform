@@ -1,0 +1,59 @@
+FROM ubuntu:22.04
+
+# 设置非交互模式
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=UTC
+
+# 安装基础工具
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    git \
+    vim \
+    nano \
+    ca-certificates \
+    gnupg \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Node.js 20
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 Python 3
+RUN apt-get update && apt-get install -y \
+    python3 \
+    python3-pip \
+    python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装常用开发工具
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*
+
+# 创建沙箱用户（非 root）
+RUN useradd -m -s /bin/bash -u 1000 sandbox
+
+# 设置工作目录
+WORKDIR /workspace
+
+# 修改所有权
+RUN chown -R sandbox:sandbox /workspace
+
+# 切换到沙箱用户
+USER sandbox
+
+# 设置环境变量
+ENV PATH="/home/sandbox/.local/bin:${PATH}"
+ENV HOME="/home/sandbox"
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node --version || exit 1
+
+# 默认命令：保持运行
+CMD ["tail", "-f", "/dev/null"]
