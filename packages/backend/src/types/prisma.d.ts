@@ -36,6 +36,7 @@ declare module '@prisma/client' {
 
   interface WorkspaceDelegate {
     findUnique(args: unknown): Promise<Workspace | null>;
+    findFirst(args: unknown): Promise<Workspace | null>;
     findMany(args?: unknown): Promise<Workspace[]>;
     create(args: unknown): Promise<Workspace>;
     update(args: unknown): Promise<Workspace>;
@@ -51,10 +52,14 @@ declare module '@prisma/client' {
   }
 
   interface ChatSessionDelegate {
+    findUnique(args: unknown): Promise<ChatSession | null>;
+    findFirst(args: unknown): Promise<ChatSession | null>;
     findMany(args?: unknown): Promise<ChatSession[]>;
     create(args: unknown): Promise<ChatSession>;
+    update(args: unknown): Promise<ChatSession>;
     delete(args: unknown): Promise<ChatSession>;
     deleteMany(args?: unknown): Promise<{ count: number }>;
+    count(args?: unknown): Promise<number>;
   }
 
   interface MessageDelegate {

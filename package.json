@@ -20,5 +20,9 @@
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "minio": "^8.0.6"
   }
 }
