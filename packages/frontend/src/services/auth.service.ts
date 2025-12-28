@@ -65,4 +65,12 @@ export const authService = {
       data: { refreshToken },
     });
   },
+
+  async updateProfile(data: { username?: string; displayName?: string }): Promise<User> {
+    return apiRequest<User>({
+      method: 'PATCH',
+      url: '/users/me',
+      data,
+    });
+  },
 };

@@ -10,6 +10,7 @@ import AuthLayout from '@/components/layout/AuthLayout';
 import LoginPage from '@/pages/LoginPage';
 import WorkspacesPage from '@/pages/WorkspacesPage';
 import EditorPage from '@/pages/EditorPage';
+import SettingsPage from '@/pages/SettingsPage';
 import NotFoundPage from '@/pages/NotFoundPage';
 
 // Configure React Query
@@ -38,6 +39,7 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/workspaces" element={<WorkspacesPage />} />
             <Route path="/workspace/:workspaceId" element={<EditorPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
             <Route path="/" element={<Navigate to="/workspaces" replace />} />
           </Route>
 
