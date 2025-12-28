@@ -56,3 +56,39 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
   await workspaceService.delete(req.user!.id, req.params.id);
   ResponseHelper.noContent(res);
 });
+
+/**
+ * 启动工作区
+ * POST /api/workspaces/:id/start
+ */
+export const start = asyncHandler(async (req: Request, res: Response) => {
+  const result = await workspaceService.start(req.user!.id, req.params.id);
+  ResponseHelper.success(res, result);
+});
+
+/**
+ * 停止工作区
+ * POST /api/workspaces/:id/stop
+ */
+export const stop = asyncHandler(async (req: Request, res: Response) => {
+  const result = await workspaceService.stop(req.user!.id, req.params.id);
+  ResponseHelper.success(res, result);
+});
+
+/**
+ * 归档工作区
+ * POST /api/workspaces/:id/archive
+ */
+export const archive = asyncHandler(async (req: Request, res: Response) => {
+  const workspace = await workspaceService.archive(req.user!.id, req.params.id);
+  ResponseHelper.success(res, workspace);
+});
+
+/**
+ * 恢复已归档的工作区
+ * POST /api/workspaces/:id/restore
+ */
+export const restore = asyncHandler(async (req: Request, res: Response) => {
+  const workspace = await workspaceService.restore(req.user!.id, req.params.id);
+  ResponseHelper.success(res, workspace);
+});

@@ -32,4 +32,26 @@ router.delete(
   controller.remove
 );
 
+// 工作区生命周期管理
+router.post(
+  '/:id/start',
+  validate({ params: workspaceIdParamSchema }),
+  controller.start
+);
+router.post(
+  '/:id/stop',
+  validate({ params: workspaceIdParamSchema }),
+  controller.stop
+);
+router.post(
+  '/:id/archive',
+  validate({ params: workspaceIdParamSchema }),
+  controller.archive
+);
+router.post(
+  '/:id/restore',
+  validate({ params: workspaceIdParamSchema }),
+  controller.restore
+);
+
 export default router;

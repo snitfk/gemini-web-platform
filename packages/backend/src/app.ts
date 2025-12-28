@@ -11,6 +11,8 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import authRoutes from './api/auth/routes.js';
 import userRoutes from './api/user/routes.js';
 import workspaceRoutes from './api/workspace/routes.js';
+import containerRoutes from './api/container/routes.js';
+import fileRoutes from './api/file/routes.js';
 import chatRoutes from './api/chat/routes.js';
 
 export function createApp(): Express {
@@ -78,6 +80,8 @@ export function createApp(): Express {
   app.use('/api/auth', authRoutes);
   app.use('/api/users', userRoutes);
   app.use('/api/workspaces', workspaceRoutes);
+  app.use('/api/workspaces', containerRoutes); // 容器路由 (嵌套在 workspaces 下)
+  app.use('/api/workspaces', fileRoutes); // 文件路由 (嵌套在 workspaces 下)
   app.use('/api/chat', chatRoutes);
 
   // API 根路径

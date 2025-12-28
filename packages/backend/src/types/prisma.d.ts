@@ -41,14 +41,18 @@ declare module '@prisma/client' {
     create(args: unknown): Promise<Workspace>;
     update(args: unknown): Promise<Workspace>;
     delete(args: unknown): Promise<Workspace>;
+    deleteMany(args?: unknown): Promise<{ count: number }>;
     count(args?: unknown): Promise<number>;
   }
 
   interface FileDelegate {
+    findUnique(args: unknown): Promise<File | null>;
     findMany(args?: unknown): Promise<File[]>;
     create(args: unknown): Promise<File>;
+    update(args: unknown): Promise<File>;
     delete(args: unknown): Promise<File>;
     deleteMany(args?: unknown): Promise<{ count: number }>;
+    count(args?: unknown): Promise<number>;
   }
 
   interface ChatSessionDelegate {
@@ -104,10 +108,17 @@ declare module '@prisma/client' {
     userId: string;
     name: string;
     description: string | null;
+    status: WorkspaceStatus;
+    containerId: string | null;
+    storageUsed: number;
+    config: unknown;
     settings: unknown;
+    lastUsedAt: Date;
     createdAt: Date;
     updatedAt: Date;
   }
+
+  type WorkspaceStatus = 'active' | 'archived' | 'deleted';
 
   interface File {
     id: string;
