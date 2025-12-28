@@ -8,6 +8,9 @@ import { Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import AuthLayout from '@/components/layout/AuthLayout';
 
+// Providers
+import WebSocketProvider from '@/components/WebSocketProvider';
+
 // Lazy-loaded pages for code splitting
 const LoginPage = lazy(() => import('@/pages/LoginPage'));
 const WorkspacesPage = lazy(() => import('@/pages/WorkspacesPage'));
@@ -38,29 +41,31 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public routes */}
-            <Route element={<AuthLayout />}>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/signup" element={<LoginPage />} />
-            </Route>
+      <WebSocketProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/signup" element={<LoginPage />} />
+              </Route>
 
-            {/* Protected routes */}
-            <Route element={<AppLayout />}>
-              <Route path="/workspaces" element={<WorkspacesPage />} />
-              <Route path="/workspace/:workspaceId" element={<EditorPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/" element={<Navigate to="/workspaces" replace />} />
-            </Route>
+              {/* Protected routes */}
+              <Route element={<AppLayout />}>
+                <Route path="/workspaces" element={<WorkspacesPage />} />
+                <Route path="/workspace/:workspaceId" element={<EditorPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/" element={<Navigate to="/workspaces" replace />} />
+              </Route>
 
-            {/* 404 */}
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
-      <Toaster />
+              {/* 404 */}
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+        <Toaster />
+      </WebSocketProvider>
     </QueryClientProvider>
   );
 }

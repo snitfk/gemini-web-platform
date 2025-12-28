@@ -5,6 +5,7 @@ import { prisma } from '../utils/prisma.js';
 import { NotFoundError, BadRequestError, ForbiddenError } from '../types/errors.js';
 import logger from '../utils/logger.js';
 import * as path from 'path';
+import { getWebSocketService } from './websocket.service.js';
 
 /**
  * 文件上传输入
@@ -180,6 +181,22 @@ export class FileService {
 
       logger.info('File written successfully', { workspaceId, filePath, fileId: file.id });
 
+      // Broadcast file change via WebSocket
+      const wsService = getWebSocketService();
+      if (wsService) {
+        wsService.sendFileChange(workspaceId, {
+          workspaceId,
+          action: 'created',
+          path: filePath,
+          metadata: {
+            size: file.size,
+            mimeType: file.mimeType,
+            lastModified: file.updatedAt.toISOString(),
+          },
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       return {
         name: file.name,
         path: file.path,
@@ -210,6 +227,17 @@ export class FileService {
     try {
       await this.fsAdapter.editFile(workspaceId, filePath, edits);
       logger.info('File edited successfully', { workspaceId, filePath });
+
+      // Broadcast file change via WebSocket
+      const wsService = getWebSocketService();
+      if (wsService) {
+        wsService.sendFileChange(workspaceId, {
+          workspaceId,
+          action: 'updated',
+          path: filePath,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       logger.error('Failed to edit file', { workspaceId, filePath, error });
       throw error;
@@ -253,6 +281,17 @@ export class FileService {
       }
 
       logger.info('File deleted successfully', { workspaceId, filePath });
+
+      // Broadcast file change via WebSocket
+      const wsService = getWebSocketService();
+      if (wsService) {
+        wsService.sendFileChange(workspaceId, {
+          workspaceId,
+          action: 'deleted',
+          path: filePath,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       logger.error('Failed to delete file', { workspaceId, filePath, error });
       throw error;
