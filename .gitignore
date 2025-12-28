@@ -7,19 +7,16 @@ dist/
 build/
 *.tsbuildinfo
 
-# Environment variables
+# Environment files
 .env
 .env.local
 .env.*.local
 
 # IDE
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
+.vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS
 .DS_Store
@@ -31,14 +28,17 @@ logs/
 npm-debug.log*
 pnpm-debug.log*
 
-# Testing
+# Test coverage
 coverage/
-.nyc_output/
 
-# Docker
-.docker-data/
+# Prisma
+packages/backend/prisma/*.db
+packages/backend/prisma/*.db-journal
 
-# Temporary
+# Docker volumes
+infrastructure/docker/data/
+
+# Temporary files
 tmp/
 temp/
-*.tmp
+.cache/

@@ -1,5 +1,4 @@
 import winston from 'winston';
-
 import { config } from '../config/index.js';
 
 const { combine, timestamp, printf, colorize, errors, json } = winston.format;
@@ -9,8 +8,7 @@ const devFormat = printf(({ level, message, timestamp, stack, ...meta }) => {
   let log = `${timestamp} [${level}]: ${message}`;
 
   // 添加元数据
-  const metaStr =
-    Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
+  const metaStr = Object.keys(meta).length > 0 ? ` ${JSON.stringify(meta)}` : '';
   log += metaStr;
 
   // 添加堆栈信息

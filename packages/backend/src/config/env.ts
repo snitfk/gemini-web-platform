@@ -1,7 +1,6 @@
-import path from 'path';
-
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import path from 'path';
 
 // 加载环境变量
 dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
@@ -9,16 +8,10 @@ dotenv.config({ path: path.resolve(process.cwd(), '../../.env') });
 // 环境变量 Schema
 const envSchema = z.object({
   // Node 环境
-  NODE_ENV: z
-    .enum(['development', 'production', 'test'])
-    .default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
 
   // 服务器配置
-  BACKEND_PORT: z
-    .string()
-    .default('3000')
-    .transform(Number)
-    .pipe(z.number().int().positive()),
+  BACKEND_PORT: z.string().transform(Number).pipe(z.number().int().positive()).default('3000'),
   BACKEND_HOST: z.string().default('localhost'),
 
   // 数据库
@@ -33,10 +26,7 @@ const envSchema = z.object({
   MINIO_ACCESS_KEY: z.string(),
   MINIO_SECRET_KEY: z.string(),
   MINIO_BUCKET: z.string(),
-  MINIO_USE_SSL: z
-    .string()
-    .default('false')
-    .transform((val) => val === 'true'),
+  MINIO_USE_SSL: z.string().transform(val => val === 'true').default('false'),
 
   // Gemini API
   GEMINI_API_KEY: z.string().min(1),
@@ -56,11 +46,7 @@ const envSchema = z.object({
 
   // Rate Limiting
   RATE_LIMIT_WINDOW: z.string().default('15m'),
-  RATE_LIMIT_MAX_REQUESTS: z
-    .string()
-    .default('100')
-    .transform(Number)
-    .pipe(z.number().int()),
+  RATE_LIMIT_MAX_REQUESTS: z.string().transform(Number).pipe(z.number().int()).default('100'),
 
   // 日志
   LOG_LEVEL: z.enum(['error', 'warn', 'info', 'debug']).default('info'),
@@ -69,7 +55,7 @@ const envSchema = z.object({
   DOCKER_HOST: z.string().default('unix:///var/run/docker.sock'),
   SANDBOX_IMAGE: z.string().default('gemini-sandbox:latest'),
   SANDBOX_MEMORY_LIMIT: z.string().default('512m'),
-  SANDBOX_CPU_LIMIT: z.string().default('1').transform(Number).pipe(z.number()),
+  SANDBOX_CPU_LIMIT: z.string().transform(Number).pipe(z.number()).default('1'),
 });
 
 // 验证环境变量
@@ -79,7 +65,7 @@ function validateEnv() {
   } catch (error) {
     if (error instanceof z.ZodError) {
       console.error('❌ 环境变量验证失败:');
-      error.issues.forEach((err) => {
+      error.errors.forEach((err) => {
         console.error(`  - ${err.path.join('.')}: ${err.message}`);
       });
       process.exit(1);

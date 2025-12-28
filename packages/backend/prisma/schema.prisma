@@ -1,5 +1,5 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
 }
 
@@ -13,42 +13,38 @@ datasource db {
 // ==================
 
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  username      String   @unique
-  passwordHash  String?  @map("password_hash")
+  id           String  @id @default(uuid())
+  email        String  @unique
+  username     String  @unique
+  passwordHash String? @map("password_hash")
 
   // OAuth 登录
-  oauthProvider String?  @map("oauth_provider")
-  oauthId       String?  @map("oauth_id")
+  oauthProvider String? @map("oauth_provider")
+  oauthId       String? @map("oauth_id")
 
   // 个人信息
-  displayName   String?  @map("display_name")
-  avatar        String?
+  displayName String? @map("display_name")
+  avatar      String?
 
   // Gemini API Key (加密存储)
-  geminiApiKey  String?  @map("gemini_api_key")
+  geminiApiKey String? @map("gemini_api_key")
 
   // 账户状态
-  isActive      Boolean  @default(true) @map("is_active")
-  isVerified    Boolean  @default(false) @map("is_verified")
+  isActive   Boolean @default(true) @map("is_active")
+  isVerified Boolean @default(false) @map("is_verified")
 
   // 时间戳
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  lastLoginAt   DateTime? @map("last_login_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // 关系
-  workspaces    Workspace[]
-  chatSessions  ChatSession[]
+  workspaces   Workspace[]
+  chatSessions ChatSession[]
   refreshTokens RefreshToken[]
 
-  @@index([email])
-  @@index([oauthProvider, oauthId])
   @@map("users")
 }
 
-// Refresh Token 表
 model RefreshToken {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
@@ -56,6 +52,7 @@ model RefreshToken {
   expiresAt DateTime @map("expires_at")
   createdAt DateTime @default(now()) @map("created_at")
 
+  // 关系
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -68,114 +65,110 @@ model RefreshToken {
 // ==================
 
 model Workspace {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-
-  // 基本信息
+  id          String  @id @default(uuid())
+  userId      String  @map("user_id")
   name        String
   description String?
 
-  // 容器信息
-  containerId String?  @unique @map("container_id")
-  storagePath String?  @map("storage_path")
-
-  // 状态
-  status      WorkspaceStatus @default(ACTIVE)
-
-  // 配置
-  config      Json?    // 工作区配置（环境变量、工具策略等）
+  // 工作区设置
+  settings Json @default("{}")
 
   // 时间戳
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-  lastUsedAt  DateTime? @map("last_used_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // 关系
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   chatSessions ChatSession[]
+  files        File[]
 
   @@index([userId])
-  @@index([status])
   @@map("workspaces")
 }
 
-enum WorkspaceStatus {
-  ACTIVE
-  SUSPENDED
-  DELETED
+model File {
+  id          String @id @default(uuid())
+  workspaceId String @map("workspace_id")
+  name        String
+  path        String
+  mimeType    String @map("mime_type")
+  size        Int
+
+  // MinIO 存储信息
+  storageKey String @map("storage_key")
+
+  // 时间戳
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // 关系
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@map("files")
 }
 
 // ==================
-// 聊天相关
+// 对话相关
 // ==================
 
 model ChatSession {
-  id          String   @id @default(uuid())
-  workspaceId String   @map("workspace_id")
-  userId      String   @map("user_id")
+  id          String  @id @default(uuid())
+  userId      String  @map("user_id")
+  workspaceId String  @map("workspace_id")
+  title       String  @default("New Chat")
+  summary     String?
 
-  // 基本信息
-  title       String?
-
-  // 模型配置
-  model       String   @default("gemini-2.0-flash-exp")
-  modelConfig Json?    @map("model_config") // temperature, topP 等
-
-  // 状态
-  status      ChatSessionStatus @default(ACTIVE)
-
-  // 统计
-  messageCount Int     @default(0) @map("message_count")
-  totalTokens  Int     @default(0) @map("total_tokens")
+  // 会话设置
+  model       String  @default("gemini-2.0-flash-exp")
+  temperature Float   @default(0.7)
+  maxTokens   Int     @default(8192) @map("max_tokens")
 
   // 时间戳
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   // 关系
-  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages       Message[]
-  toolExecutions ToolExecution[]
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  Message[]
 
-  @@index([workspaceId])
   @@index([userId])
-  @@index([status])
+  @@index([workspaceId])
   @@map("chat_sessions")
 }
 
-enum ChatSessionStatus {
-  ACTIVE
-  ARCHIVED
-  DELETED
-}
-
 model Message {
-  id        String   @id @default(uuid())
-  sessionId String   @map("session_id")
+  id            String @id @default(uuid())
+  chatSessionId String @map("chat_session_id")
 
   // 消息内容
-  role      MessageRole
-  content   Json     // Gemini API 的 Content 格式
+  role    MessageRole
+  content String
 
   // 元数据
-  metadata  Json?    // token 数量、延迟等
+  metadata Json @default("{}")
+
+  // Token 使用
+  promptTokens     Int? @map("prompt_tokens")
+  completionTokens Int? @map("completion_tokens")
 
   // 时间戳
   createdAt DateTime @default(now()) @map("created_at")
 
   // 关系
-  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  chatSession    ChatSession     @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  toolExecutions ToolExecution[]
 
-  @@index([sessionId])
-  @@index([createdAt])
+  @@index([chatSessionId])
   @@map("messages")
 }
 
 enum MessageRole {
-  USER
-  MODEL
-  TOOL
+  user
+  assistant
+  system
+  tool
 }
 
 // ==================
@@ -183,52 +176,37 @@ enum MessageRole {
 // ==================
 
 model ToolExecution {
-  id         String   @id @default(uuid())
-  sessionId  String   @map("session_id")
+  id        String @id @default(uuid())
+  messageId String @map("message_id")
 
   // 工具信息
-  toolName   String   @map("tool_name")
-  params     Json
-  result     Json?
+  toolName   String          @map("tool_name")
+  toolInput  Json            @map("tool_input")
+  toolOutput Json?           @map("tool_output")
+  status     ExecutionStatus @default(pending)
 
-  // 状态
-  status     ToolExecutionStatus @default(PENDING)
-  error      String?  // 错误信息
+  // 执行时间
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+  duration    Int? // 毫秒
 
-  // 性能
-  durationMs Int?     @map("duration_ms")
+  // 错误信息
+  error String?
 
   // 时间戳
-  createdAt  DateTime @default(now()) @map("created_at")
-  completedAt DateTime? @map("completed_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   // 关系
-  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
-  @@index([sessionId])
-  @@index([toolName])
-  @@index([status])
+  @@index([messageId])
   @@map("tool_executions")
 }
 
-enum ToolExecutionStatus {
-  PENDING
-  EXECUTING
-  SUCCESS
-  ERROR
-  CANCELLED
-}
-
-// ==================
-// 系统配置相关
-// ==================
-
-model SystemConfig {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     Json
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("system_configs")
+enum ExecutionStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
 }

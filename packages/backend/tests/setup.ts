@@ -1,27 +1,22 @@
-import { beforeAll, afterAll, afterEach } from 'vitest';
+import { beforeAll, afterAll } from 'vitest';
 
-import { prisma } from '../src/utils/prisma.js';
+// Mock environment variables for testing
+process.env.NODE_ENV = 'test';
+process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test';
+process.env.REDIS_URL = 'redis://localhost:6379';
+process.env.MINIO_ENDPOINT = 'localhost';
+process.env.MINIO_PORT = '9000';
+process.env.MINIO_ACCESS_KEY = 'test';
+process.env.MINIO_SECRET_KEY = 'test';
+process.env.MINIO_BUCKET = 'test';
+process.env.GEMINI_API_KEY = 'test-api-key';
+process.env.JWT_SECRET = 'test-secret-key-that-is-at-least-32-characters';
+process.env.CORS_ORIGIN = 'http://localhost:5173';
 
-// 测试前清理数据库
 beforeAll(async () => {
-  // 清空所有表
-  await prisma.toolExecution.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.chatSession.deleteMany();
-  await prisma.workspace.deleteMany();
-  await prisma.user.deleteMany();
+  // Setup before all tests
 });
 
-// 每个测试后清理
-afterEach(async () => {
-  await prisma.toolExecution.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.chatSession.deleteMany();
-  await prisma.workspace.deleteMany();
-  await prisma.user.deleteMany();
-});
-
-// 测试后断开连接
 afterAll(async () => {
-  await prisma.$disconnect();
+  // Cleanup after all tests
 });

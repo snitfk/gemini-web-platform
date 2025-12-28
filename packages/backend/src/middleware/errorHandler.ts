@@ -1,17 +1,21 @@
-import { Prisma } from '@prisma/client';
 import { Request, Response, NextFunction } from 'express';
-import { ZodError } from 'zod';
-
-import { config } from '../config/index.js';
 import { AppError, ValidationError } from '../types/errors.js';
 import logger from '../utils/logger.js';
+import { config } from '../config/index.js';
+import { ZodError } from 'zod';
+import { Prisma } from '@prisma/client';
+
+// Prisma error type guard
+function isPrismaError(err: unknown): err is Prisma.PrismaClientKnownRequestError {
+  return err instanceof Error && 'code' in err && typeof (err as Prisma.PrismaClientKnownRequestError).code === 'string';
+}
 
 export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
   _next: NextFunction
-) {
+): Response {
   // 记录错误
   logger.error('Error occurred:', {
     error: err.message,
@@ -38,7 +42,7 @@ export function errorHandler(
       success: false,
       error: {
         message: 'Validation Error',
-        errors: err.issues.map((e) => ({
+        errors: err.errors.map((e) => ({
           path: e.path.join('.'),
           message: e.message,
         })),
@@ -47,7 +51,7 @@ export function errorHandler(
   }
 
   // Prisma 错误
-  if (err instanceof Prisma.PrismaClientKnownRequestError) {
+  if (isPrismaError(err)) {
     // 唯一约束冲突
     if (err.code === 'P2002') {
       return res.status(409).json({
@@ -86,8 +90,8 @@ export function errorHandler(
 }
 
 // 404 处理
-export function notFoundHandler(req: Request, res: Response) {
-  res.status(404).json({
+export function notFoundHandler(req: Request, res: Response): Response {
+  return res.status(404).json({
     success: false,
     error: {
       message: `Cannot ${req.method} ${req.path}`,
@@ -97,7 +101,7 @@ export function notFoundHandler(req: Request, res: Response) {
 
 // 异步错误包装器
 export function asyncHandler(
-  fn: (req: Request, res: Response, next: NextFunction) => Promise<any>
+  fn: (req: Request, res: Response, next: NextFunction) => Promise<unknown>
 ) {
   return (req: Request, res: Response, next: NextFunction) => {
     Promise.resolve(fn(req, res, next)).catch(next);

@@ -1,12 +1,12 @@
 import { Response } from 'express';
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: {
     message: string;
     code?: string;
-    errors?: any[];
+    errors?: unknown[];
   };
   meta?: {
     page?: number;
@@ -66,7 +66,7 @@ export class ResponseHelper {
     res: Response,
     message: string,
     statusCode = 500,
-    errors?: any[]
+    errors?: unknown[]
   ): Response {
     return res.status(statusCode).json({
       success: false,

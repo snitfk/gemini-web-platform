@@ -1,57 +1,56 @@
-import { Prisma, PrismaClient } from '@prisma/client';
-
-export abstract class BaseRepository<
-  T,
-  CreateInput,
-  UpdateInput,
-  WhereInput,
-  WhereUniqueInput,
-> {
-  constructor(
-    protected readonly prisma: PrismaClient,
-    protected readonly modelName: Prisma.ModelName
-  ) {}
-
-  /**
-   * 创建记录
-   */
-  abstract create(data: CreateInput): Promise<T>;
-
-  /**
-   * 查找唯一记录
-   */
-  abstract findUnique(where: WhereUniqueInput): Promise<T | null>;
-
-  /**
-   * 查找多条记录
-   */
-  abstract findMany(params: {
+/**
+ * Base Repository 接口
+ * 定义通用的数据访问方法
+ */
+export interface IBaseRepository<T, CreateInput, UpdateInput, WhereInput, WhereUniqueInput> {
+  create(data: CreateInput): Promise<T>;
+  findUnique(where: WhereUniqueInput): Promise<T | null>;
+  findMany(params: {
     where?: WhereInput;
     skip?: number;
     take?: number;
-    orderBy?: any;
+    orderBy?: Record<string, 'asc' | 'desc'>;
   }): Promise<T[]>;
+  update(where: WhereUniqueInput, data: UpdateInput): Promise<T>;
+  delete(where: WhereUniqueInput): Promise<T>;
+  count(where?: WhereInput): Promise<number>;
+}
 
-  /**
-   * 更新记录
-   */
-  abstract update(where: WhereUniqueInput, data: UpdateInput): Promise<T>;
+/**
+ * 分页结果接口
+ */
+export interface PaginatedResult<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
 
-  /**
-   * 删除记录
-   */
-  abstract delete(where: WhereUniqueInput): Promise<T>;
+/**
+ * 分页参数接口
+ */
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
 
-  /**
-   * 计数
-   */
-  abstract count(where?: WhereInput): Promise<number>;
-
-  /**
-   * 检查是否存在
-   */
-  async exists(where: WhereInput): Promise<boolean> {
-    const count = await this.count(where);
-    return count > 0;
-  }
+/**
+ * 创建分页结果
+ */
+export function createPaginatedResult<T>(
+  data: T[],
+  total: number,
+  page: number,
+  limit: number
+): PaginatedResult<T> {
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
 }

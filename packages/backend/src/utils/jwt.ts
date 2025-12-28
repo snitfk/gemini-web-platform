@@ -1,10 +1,4 @@
-import {
-  sign,
-  verify,
-  TokenExpiredError,
-  JsonWebTokenError,
-} from 'jsonwebtoken';
-
+import jwt from 'jsonwebtoken';
 import { config } from '../config/index.js';
 import { UnauthorizedError } from '../types/errors.js';
 
@@ -24,8 +18,8 @@ export function generateAccessToken(userId: string, email: string): string {
     type: 'access',
   };
 
-  return sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.expiresIn as any,
+  return jwt.sign(payload, config.jwt.secret, {
+    expiresIn: config.jwt.expiresIn as jwt.SignOptions['expiresIn'],
   });
 }
 
@@ -39,8 +33,8 @@ export function generateRefreshToken(userId: string, email: string): string {
     type: 'refresh',
   };
 
-  return sign(payload, config.jwt.secret, {
-    expiresIn: config.jwt.refreshExpiresIn as any,
+  return jwt.sign(payload, config.jwt.secret, {
+    expiresIn: config.jwt.refreshExpiresIn as jwt.SignOptions['expiresIn'],
   });
 }
 
@@ -49,13 +43,13 @@ export function generateRefreshToken(userId: string, email: string): string {
  */
 export function verifyToken(token: string): JwtPayload {
   try {
-    const payload = verify(token, config.jwt.secret) as JwtPayload;
+    const payload = jwt.verify(token, config.jwt.secret) as JwtPayload;
     return payload;
   } catch (error) {
-    if (error instanceof TokenExpiredError) {
+    if (error instanceof jwt.TokenExpiredError) {
       throw new UnauthorizedError('Token expired');
     }
-    if (error instanceof JsonWebTokenError) {
+    if (error instanceof jwt.JsonWebTokenError) {
       throw new UnauthorizedError('Invalid token');
     }
     throw new UnauthorizedError('Token verification failed');

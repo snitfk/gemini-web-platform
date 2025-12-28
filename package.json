@@ -1,43 +1,32 @@
 {
   "name": "gemini-web-platform",
   "version": "0.1.0",
-  "description": "Web-based AI Agent Platform powered by Google Gemini",
+  "description": "Gemini Web Platform - AI-powered development environment",
   "private": true,
-  "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=8.0.0"
-  },
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "pnpm run --parallel dev",
-    "dev:backend": "pnpm --filter @gemini-web/backend dev",
-    "dev:frontend": "pnpm --filter @gemini-web/frontend dev",
-    "build": "pnpm run --recursive build",
-    "test": "pnpm run --recursive test",
-    "lint": "pnpm run --recursive lint",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "typecheck": "pnpm run --recursive typecheck",
-    "clean": "pnpm run --recursive clean && rm -rf node_modules",
-    "setup": "./scripts/setup-dev.sh"
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "lint": "pnpm -r run lint",
+    "clean": "pnpm -r run clean"
   },
   "devDependencies": {
-    "@aws-sdk/client-s3": "^3.958.0",
-    "@types/dockerode": "^3.3.47",
-    "@types/node": "^20.11.0",
-    "@types/socket.io-client": "^3.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.50.1",
-    "@typescript-eslint/parser": "^8.50.1",
-    "dockerode": "^4.0.9",
-    "eslint": "^8.57.1",
-    "eslint-config-prettier": "^10.1.8",
-    "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "prettier": "^3.7.4",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3",
-    "tsx": "^4.7.0",
-    "typescript": "^5.3.3",
-    "vitest": "^1.2.0"
+    "@playwright/test": "^1.57.0",
+    "typescript": "^5.3.3"
   },
-  "packageManager": "pnpm@8.15.0"
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "minio": "^8.0.6"
+  }
 }

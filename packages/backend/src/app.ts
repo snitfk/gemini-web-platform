@@ -1,18 +1,19 @@
-import compression from 'compression';
-import cors from 'cors';
 import express, { Express } from 'express';
-import rateLimit from 'express-rate-limit';
+import cors from 'cors';
 import helmet from 'helmet';
-
-import authRoutes from './api/auth/routes.js';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
 import { config } from './config/index.js';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
-// 导入路由（稍后创建）
-// import authRoutes from './api/auth/routes.js';
-// import chatRoutes from './api/chat/routes.js';
-// import workspaceRoutes from './api/workspace/routes.js';
+// 导入路由
+import authRoutes from './api/auth/routes.js';
+import userRoutes from './api/user/routes.js';
+import workspaceRoutes from './api/workspace/routes.js';
+import containerRoutes from './api/container/routes.js';
+import fileRoutes from './api/file/routes.js';
+import chatRoutes from './api/chat/routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -76,10 +77,12 @@ export function createApp(): Express {
   // API 路由
   // ==================
 
-  // TODO: 挂载路由
   app.use('/api/auth', authRoutes);
-  // app.use('/api/chat', chatRoutes);
-  // app.use('/api/workspaces', workspaceRoutes);
+  app.use('/api/users', userRoutes);
+  app.use('/api/workspaces', workspaceRoutes);
+  app.use('/api/workspaces', containerRoutes); // 容器路由 (嵌套在 workspaces 下)
+  app.use('/api/workspaces', fileRoutes); // 文件路由 (嵌套在 workspaces 下)
+  app.use('/api/chat', chatRoutes);
 
   // API 根路径
   app.get('/api', (_req, res) => {

@@ -23,7 +23,7 @@ export type PaginationQuery = z.infer<typeof paginationSchema>;
 export interface PaginationParams {
   skip: number;
   take: number;
-  orderBy?: any;
+  orderBy?: Record<string, 'asc' | 'desc'>;
 }
 
 /**

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client';
-
 import logger from './logger.js';
 
 const prismaClientSingleton = () => {
@@ -13,21 +12,23 @@ const prismaClientSingleton = () => {
 };
 
 declare global {
+  // eslint-disable-next-line no-var
   var prismaGlobal: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
 export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
 // 日志处理
-prisma.$on('query', (e) => {
-  logger.debug('Query:', { sql: e.query, duration: `${e.duration}ms` });
+prisma.$on('query', (e: unknown) => {
+  const event = e as { query: string; duration: number };
+  logger.debug('Query:', { sql: event.query, duration: `${event.duration}ms` });
 });
 
-prisma.$on('error', (e) => {
+prisma.$on('error', (e: unknown) => {
   logger.error('Prisma error:', e);
 });
 
-prisma.$on('warn', (e) => {
+prisma.$on('warn', (e: unknown) => {
   logger.warn('Prisma warning:', e);
 });
 

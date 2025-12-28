@@ -1,5 +1,24 @@
 import { env } from './env.js';
 
+// 辅助函数：解析时间字符串
+function parseDuration(duration: string): number {
+  const units: Record<string, number> = {
+    ms: 1,
+    s: 1000,
+    m: 60 * 1000,
+    h: 60 * 60 * 1000,
+    d: 24 * 60 * 60 * 1000,
+  };
+
+  const match = duration.match(/^(\d+)(ms|s|m|h|d)$/);
+  if (!match) {
+    throw new Error(`Invalid duration format: ${duration}`);
+  }
+
+  const [, value, unit] = match;
+  return parseInt(value) * units[unit];
+}
+
 export const config = {
   // 服务器
   server: {
@@ -75,25 +94,20 @@ export const config = {
     sandboxMemoryLimit: env.SANDBOX_MEMORY_LIMIT,
     sandboxCpuLimit: env.SANDBOX_CPU_LIMIT,
   },
+
+  // Cache
+  cache: {
+    prefix: 'gemini:',
+    defaultTTL: 300, // 5 minutes
+  },
+
+  // Security
+  security: {
+    bcryptRounds: 10,
+    maxLoginAttempts: 5,
+    lockoutDuration: 15 * 60 * 1000, // 15 minutes
+    sessionTimeout: 24 * 60 * 60 * 1000, // 24 hours
+  },
 } as const;
-
-// 辅助函数：解析时间字符串
-function parseDuration(duration: string): number {
-  const units: Record<string, number> = {
-    ms: 1,
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-  };
-
-  const match = duration.match(/^(\d+)(ms|s|m|h|d)$/);
-  if (!match) {
-    throw new Error(`Invalid duration format: ${duration}`);
-  }
-
-  const [, value, unit] = match;
-  return parseInt(value) * units[unit];
-}
 
 export { env };

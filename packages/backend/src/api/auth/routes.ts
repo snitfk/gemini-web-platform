@@ -1,101 +1,34 @@
-import { Router } from 'express';
-
-import { authenticate } from '../../middleware/auth.js';
-import { asyncHandler } from '../../middleware/errorHandler.js';
+import { Router, type IRouter } from 'express';
 import { validate } from '../../middleware/validate.js';
-import { authService } from '../../services/auth.service.js';
-import { ResponseHelper } from '../../utils/response.js';
+import { authenticate } from '../../middleware/auth.js';
+import {
+  registerSchema,
+  loginSchema,
+  refreshTokenSchema,
+  changePasswordSchema,
+} from './schema.js';
+import * as controller from './controller.js';
 
-import { registerSchema, loginSchema, refreshTokenSchema } from './schemas.js';
+const router: IRouter = Router();
 
-const router = Router();
-
-/**
- * 注册
- */
-router.post(
-  '/register',
-  validate(registerSchema),
-  asyncHandler(async (req, res) => {
-    const result = await authService.register(req.body);
-
-    ResponseHelper.created(res, {
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    });
-  })
-);
-
-/**
- * 登录
- */
-router.post(
-  '/login',
-  validate(loginSchema),
-  asyncHandler(async (req, res) => {
-    const result = await authService.login(req.body);
-
-    ResponseHelper.success(res, {
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    });
-  })
-);
-
-/**
- * 刷新访问令牌
- */
+// 公开路由
+router.post('/register', validate({ body: registerSchema }), controller.register);
+router.post('/login', validate({ body: loginSchema }), controller.login);
 router.post(
   '/refresh',
-  validate(refreshTokenSchema),
-  asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body;
-    const tokens = await authService.refreshAccessToken(refreshToken);
-
-    ResponseHelper.success(res, tokens);
-  })
+  validate({ body: refreshTokenSchema }),
+  controller.refreshToken
 );
+router.post('/logout', controller.logout);
 
-/**
- * 登出
- */
+// 需要认证的路由
+router.get('/me', authenticate, controller.me);
+router.post('/logout-all', authenticate, controller.logoutAll);
 router.post(
-  '/logout',
-  validate(refreshTokenSchema),
-  asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body;
-    await authService.logout(refreshToken);
-
-    ResponseHelper.success(res, { message: 'Logged out successfully' });
-  })
-);
-
-/**
- * 登出所有设备
- */
-router.post(
-  '/logout-all',
+  '/change-password',
   authenticate,
-  asyncHandler(async (req, res) => {
-    await authService.logoutAll(req.user!.id);
-
-    ResponseHelper.success(res, { message: 'Logged out from all devices' });
-  })
-);
-
-/**
- * 获取当前用户信息
- */
-router.get(
-  '/me',
-  authenticate,
-  asyncHandler(async (req, res) => {
-    const { passwordHash, ...user } = req.user!;
-
-    ResponseHelper.success(res, { user });
-  })
+  validate({ body: changePasswordSchema }),
+  controller.changePassword
 );
 
 export default router;
