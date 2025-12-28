@@ -1,344 +1,433 @@
 # Gemini Web Platform
 
-> 基于 Google Gemini 的 Web AI Agent 平台
+> 基于 Google Gemini 的 Web AI Agent 开发平台
 
-一个支持多用户、多工作区的 AI Agent 平台，提供与 Google Gemini 的交互能力，支持工具调用、容器化沙盒环境和会话管理。
+一个功能完整的 AI 辅助开发平台，集成 Google Gemini API，提供智能代码编辑、实时协作、终端模拟和工作区管理功能。
 
-## ✨ 特性
+## ✨ 功能特性
 
-- 🤖 **Google Gemini 集成**: 支持最新的 Gemini 2.0 Flash 模型
-- 👥 **多用户系统**: JWT + OAuth 认证，支持 Google 登录
-- 🏢 **工作区管理**: 每个工作区对应独立的 Docker 沙盒环境
-- 💬 **会话管理**: 完整的聊天历史记录和上下文管理
-- 🔧 **工具执行**: 记录和追踪 AI 工具调用的执行过程
-- 🔐 **安全性**: API Key 加密存储、速率限制、CORS 保护
-- 📊 **可观测性**: Winston 结构化日志、请求追踪
-- 🗄️ **数据持久化**: PostgreSQL + Prisma ORM
-- ⚡ **缓存支持**: Redis 缓存层
-- 📦 **对象存储**: MinIO (S3 兼容)
+### 核心功能
+- 🤖 **AI 代码助手** - 集成 Google Gemini 2.0，支持智能对话和代码生成
+- 📝 **Monaco 编辑器** - 专业级代码编辑器，支持 IntelliSense、自定义主题和代码格式化
+- 💻 **Web 终端** - 基于 xterm.js 的完整终端模拟器
+- 🔄 **实时协作** - Socket.IO WebSocket 实时通信，文件变更即时同步
+- 📁 **工作区管理** - 独立的开发环境，支持容器化沙盒隔离
+- 👥 **多用户系统** - JWT + OAuth 认证，支持 Google 登录
+
+### 技术亮点
+- 🏗️ **Monorepo 架构** - pnpm workspaces 管理前后端代码
+- 🧪 **完善测试** - 219 个测试用例（199 后端 + 20 前端）+ E2E 测试
+- ⚡ **性能优化** - 代码分割、Gzip/Brotli 压缩、懒加载
+- 🔐 **安全加固** - Helmet、CORS、Rate Limiting、加密存储
 
 ## 🏗️ 技术架构
 
-### 技术栈
+### 后端技术栈
 
-- **后端**: Node.js 20+ / TypeScript / Express.js
-- **数据库**: PostgreSQL 16 + Prisma ORM
-- **缓存**: Redis 7
-- **对象存储**: MinIO
-- **AI 引擎**: Google Gemini API
-- **认证**: JWT + OAuth 2.0
-- **容器化**: Docker + Docker Compose
-- **包管理**: pnpm Workspaces (Monorepo)
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Node.js | 20+ | 运行时环境 |
+| Express.js | 4.x | Web 框架 |
+| TypeScript | 5.x | 类型系统 |
+| Prisma | 5.x | ORM |
+| PostgreSQL | 16 | 主数据库 |
+| Redis | 7 | 缓存层 |
+| Socket.IO | 4.x | WebSocket |
+| Winston | 3.x | 日志系统 |
 
-### 项目结构
+### 前端技术栈
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| React | 18.x | UI 框架 |
+| TypeScript | 5.x | 类型系统 |
+| Vite | 6.x | 构建工具 |
+| Tailwind CSS | 3.x | 样式框架 |
+| Zustand | 5.x | 状态管理 |
+| React Query | 5.x | 数据获取 |
+| Monaco Editor | 0.52 | 代码编辑器 |
+| xterm.js | 5.x | 终端模拟 |
+| Radix UI | - | 无障碍组件 |
+
+### 测试和工具
+
+| 技术 | 用途 |
+|------|------|
+| Vitest | 单元测试和集成测试 |
+| Playwright | E2E 测试 |
+| Testing Library | React 组件测试 |
+| Supertest | API 集成测试 |
+
+## 📁 项目结构
 
 ```
 gemini-web-platform/
 ├── packages/
-│   ├── backend/              # Express 后端服务
+│   ├── backend/                 # 后端服务
 │   │   ├── src/
-│   │   │   ├── api/         # API 路由
-│   │   │   ├── services/    # 业务逻辑
-│   │   │   ├── repositories/# 数据访问层
-│   │   │   ├── middleware/  # Express 中间件
-│   │   │   ├── utils/       # 工具函数
-│   │   │   ├── config/      # 配置管理
-│   │   │   └── types/       # TypeScript 类型
-│   │   ├── prisma/          # 数据库 Schema
-│   │   └── tests/           # 测试文件
-│   ├── frontend/            # 前端应用 (待开发)
-│   └── shared/              # 共享代码
+│   │   │   ├── api/            # API 路由和控制器
+│   │   │   │   ├── auth/       # 认证接口
+│   │   │   │   ├── chat/       # 聊天接口
+│   │   │   │   ├── workspace/  # 工作区接口
+│   │   │   │   ├── file/       # 文件接口
+│   │   │   │   └── container/  # 容器接口
+│   │   │   ├── services/       # 业务逻辑层
+│   │   │   │   ├── gemini.service.ts
+│   │   │   │   ├── websocket.service.ts
+│   │   │   │   ├── file.service.ts
+│   │   │   │   ├── cache.service.ts
+│   │   │   │   └── ...
+│   │   │   ├── repositories/   # 数据访问层
+│   │   │   ├── adapters/       # 外部服务适配器
+│   │   │   ├── middleware/     # Express 中间件
+│   │   │   ├── config/         # 配置管理
+│   │   │   ├── utils/          # 工具函数
+│   │   │   └── types/          # TypeScript 类型
+│   │   ├── prisma/             # 数据库模型
+│   │   └── tests/              # 测试文件
+│   │       ├── unit/           # 单元测试
+│   │       └── integration/    # 集成测试
+│   │
+│   └── frontend/               # 前端应用
+│       ├── src/
+│       │   ├── components/     # React 组件
+│       │   │   ├── ui/         # 基础 UI 组件
+│       │   │   ├── editor/     # 编辑器组件
+│       │   │   ├── chat/       # 聊天组件
+│       │   │   ├── terminal/   # 终端组件
+│       │   │   └── layout/     # 布局组件
+│       │   ├── pages/          # 页面组件
+│       │   ├── stores/         # Zustand 状态
+│       │   ├── services/       # API 服务
+│       │   ├── hooks/          # 自定义 Hooks
+│       │   └── lib/            # 工具库
+│       │       ├── monaco/     # Monaco 配置
+│       │       ├── websocket/  # WebSocket 客户端
+│       │       └── performance.ts
+│       └── public/             # 静态资源
+│
 ├── infrastructure/
-│   └── docker/              # Docker 配置
-│       ├── docker-compose.yml
-│       └── Dockerfile.sandbox
-├── scripts/                 # 开发脚本
-└── .env.example            # 环境变量模板
+│   └── docker/                 # Docker 配置
+│       └── docker-compose.yml
+│
+├── e2e/                        # E2E 测试
+│   ├── auth.spec.ts
+│   ├── home.spec.ts
+│   └── workspace.spec.ts
+│
+├── docs/                       # 项目文档
+├── scripts/                    # 脚本工具
+└── playwright.config.ts        # Playwright 配置
 ```
 
 ## 🚀 快速开始
 
-### 前置要求
+### 环境要求
 
-- Node.js >= 20.0.0
-- pnpm >= 8.0.0
-- Docker & Docker Compose
-- PostgreSQL 16 (通过 Docker)
+- **Node.js** >= 18.0.0
+- **pnpm** >= 8.0.0
+- **Docker** & Docker Compose
+- **PostgreSQL** 15+
+- **Redis** 7+
 
 ### 安装步骤
 
-1. **克隆仓库**
-
 ```bash
-git clone <repository-url>
+# 1. 克隆仓库
+git clone https://github.com/your-repo/gemini-web-platform.git
 cd gemini-web-platform
-```
 
-2. **安装依赖**
-
-```bash
+# 2. 安装依赖
 pnpm install
-```
 
-3. **配置环境变量**
-
-```bash
+# 3. 配置环境变量
 cp .env.example .env
-```
+# 编辑 .env 文件，配置必要的环境变量
 
-编辑 `.env` 文件，至少配置以下必需项：
-
-```env
-# 必需配置
-GEMINI_API_KEY=your_gemini_api_key_here
-JWT_SECRET=your_jwt_secret_here
-
-# 数据库配置
-DATABASE_URL=postgresql://postgres:password@localhost:5432/gemini_web
-
-# 其他配置保持默认即可
-```
-
-4. **启动基础设施服务**
-
-```bash
+# 4. 启动基础设施服务
 cd infrastructure/docker
 docker-compose up -d
-```
 
-这将启动以下服务：
-- PostgreSQL (5432)
-- Redis (6379)
-- MinIO (9000, 9001)
-- Adminer (8080)
-
-5. **运行数据库迁移**
-
-```bash
-cd packages/backend
+# 5. 初始化数据库
+cd ../../packages/backend
 pnpm prisma migrate dev
+
+# 6. 启动开发服务器
+cd ../..
+pnpm dev
 ```
 
-6. **启动开发服务器**
+服务启动后：
+- **前端**: http://localhost:3000
+- **后端 API**: http://localhost:8000
+- **健康检查**: http://localhost:8000/health
 
-```bash
-# 从项目根目录
-pnpm dev:backend
+### 环境变量配置
+
+```env
+# 必填配置
+GEMINI_API_KEY=your-gemini-api-key
+DATABASE_URL=postgresql://postgres:password@localhost:5432/gemini_web
+JWT_SECRET=your-jwt-secret-key-at-least-32-chars
+
+# 可选配置
+REDIS_URL=redis://localhost:6379
+MINIO_ENDPOINT=localhost
+MINIO_PORT=9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+CORS_ORIGIN=http://localhost:3000
+LOG_LEVEL=debug
 ```
 
-后端服务将运行在 `http://localhost:3000`
+## 📖 开发命令
 
-### 快速设置脚本
-
-或者使用自动化脚本一键设置：
-
-```bash
-./scripts/setup-dev.sh
-```
-
-## 📖 开发指南
-
-### 常用命令
+### 根目录命令
 
 ```bash
 # 开发
-pnpm dev                # 启动所有服务
-pnpm dev:backend        # 仅启动后端
-pnpm dev:frontend       # 仅启动前端
-
-# 构建
-pnpm build              # 构建所有包
-pnpm typecheck          # TypeScript 类型检查
+pnpm dev              # 启动所有服务（前端 + 后端）
+pnpm build            # 构建所有包
+pnpm clean            # 清理构建产物
 
 # 测试
-pnpm test               # 运行所有测试
-pnpm test:watch         # 监听模式
+pnpm test             # 运行所有测试
+pnpm test:e2e         # 运行 E2E 测试
+pnpm test:e2e:ui      # E2E 测试（带 UI）
+pnpm test:e2e:headed  # E2E 测试（有头浏览器）
 
 # 代码质量
-pnpm lint               # ESLint 检查
-pnpm format             # Prettier 格式化
-
-# 清理
-pnpm clean              # 清理构建产物
+pnpm lint             # ESLint 检查
 ```
 
-### 数据库操作
+### 后端命令
 
 ```bash
 cd packages/backend
 
-# 创建迁移
-pnpm prisma migrate dev --name <migration_name>
+pnpm dev              # 启动开发服务器（热重载）
+pnpm dev:debug        # 调试模式
+pnpm build            # TypeScript 编译
+pnpm start            # 生产启动
 
-# 打开数据库 GUI
-pnpm prisma studio
+# 测试
+pnpm test             # 运行测试
+pnpm test:watch       # 监听模式
+pnpm test:coverage    # 覆盖率报告
 
-# 重置数据库
-pnpm prisma migrate reset
-
-# 生成 Prisma Client
-pnpm prisma generate
+# 数据库
+pnpm db:migrate       # 运行迁移
+pnpm db:studio        # Prisma Studio
+pnpm db:generate      # 生成 Prisma Client
 ```
 
-### API 文档
+### 前端命令
 
-启动后端服务后，访问：
+```bash
+cd packages/frontend
 
-- **健康检查**: `GET http://localhost:3000/health`
-- **API 信息**: `GET http://localhost:3000/api`
-- **认证接口**: `http://localhost:3000/api/auth/*`
+pnpm dev              # 启动开发服务器
+pnpm build            # 构建生产版本
+pnpm preview          # 预览生产构建
 
-## 🗄️ 数据模型
+# 测试
+pnpm test             # 运行测试
+pnpm test:watch       # 监听模式
+pnpm test:coverage    # 覆盖率报告
+```
 
-### 核心实体
+## 📡 API 接口
 
-- **User**: 用户账户，支持密码和 OAuth 登录
-- **Workspace**: 工作区，关联 Docker 容器沙盒
-- **ChatSession**: 聊天会话，管理对话上下文
-- **Message**: 消息记录 (USER/MODEL/TOOL)
-- **ToolExecution**: 工具执行记录和状态追踪
-- **RefreshToken**: JWT 刷新令牌
+### 认证接口
 
-详见 `packages/backend/prisma/schema.prisma`
-
-## 🔧 配置说明
-
-### 环境变量
-
-| 变量名 | 说明 | 默认值 |
-|--------|------|--------|
-| `NODE_ENV` | 运行环境 | `development` |
-| `BACKEND_PORT` | 后端端口 | `3000` |
-| `DATABASE_URL` | PostgreSQL 连接串 | - |
-| `REDIS_URL` | Redis 连接串 | `redis://localhost:6379` |
-| `GEMINI_API_KEY` | Gemini API 密钥 | **必填** |
-| `JWT_SECRET` | JWT 签名密钥 | **必填** |
-| `JWT_EXPIRES_IN` | JWT 过期时间 | `7d` |
-| `CORS_ORIGIN` | CORS 允许源 | `http://localhost:5173` |
-| `LOG_LEVEL` | 日志级别 | `debug` |
-
-完整配置参考 `.env.example`
-
-### Docker 服务
-
-| 服务 | 端口 | 凭据 |
+| 方法 | 路径 | 描述 |
 |------|------|------|
-| PostgreSQL | 5432 | `postgres/password` |
-| Redis | 6379 | - |
-| MinIO API | 9000 | `minioadmin/minioadmin` |
-| MinIO Console | 9001 | `minioadmin/minioadmin` |
-| Adminer | 8080 | - |
+| POST | `/api/auth/register` | 用户注册 |
+| POST | `/api/auth/login` | 用户登录 |
+| POST | `/api/auth/logout` | 用户登出 |
+| POST | `/api/auth/refresh` | 刷新令牌 |
+| GET | `/api/auth/me` | 获取当前用户 |
+| POST | `/api/auth/change-password` | 修改密码 |
 
-## 🏛️ 架构设计
+### 工作区接口
 
-### 分层架构
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/workspaces` | 获取工作区列表 |
+| POST | `/api/workspaces` | 创建工作区 |
+| GET | `/api/workspaces/:id` | 获取工作区详情 |
+| PUT | `/api/workspaces/:id` | 更新工作区 |
+| DELETE | `/api/workspaces/:id` | 删除工作区 |
+| POST | `/api/workspaces/:id/start` | 启动工作区 |
+| POST | `/api/workspaces/:id/stop` | 停止工作区 |
 
-```
-┌─────────────────────────────────────┐
-│         API Routes Layer            │  HTTP 路由和验证
-├─────────────────────────────────────┤
-│        Services Layer               │  业务逻辑编排
-├─────────────────────────────────────┤
-│      Repositories Layer             │  数据访问抽象
-├─────────────────────────────────────┤
-│      Prisma ORM / Database          │  数据持久化
-└─────────────────────────────────────┘
-```
+### 文件接口
 
-### 关键设计模式
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| GET | `/api/workspaces/:id/files` | 获取文件列表 |
+| GET | `/api/workspaces/:id/files/*` | 读取文件内容 |
+| POST | `/api/workspaces/:id/files/*` | 创建/更新文件 |
+| PUT | `/api/workspaces/:id/files/*` | 编辑文件 |
+| DELETE | `/api/workspaces/:id/files/*` | 删除文件 |
 
-- **Repository Pattern**: 数据访问抽象，便于测试和替换
-- **Dependency Injection**: 通过构造函数注入依赖
-- **Middleware Chain**: Express 中间件组合
-- **Error Boundary**: 全局错误处理和标准化响应
+### 聊天接口
 
-## 🔐 安全特性
-
-- ✅ JWT 访问令牌 + 刷新令牌机制
-- ✅ bcrypt 密码哈希 (成本因子 10)
-- ✅ AES-256-GCM API Key 加密存储
-- ✅ Helmet 安全头设置
-- ✅ CORS 跨域保护
-- ✅ 速率限制 (默认 15 分钟 100 请求)
-- ✅ 请求体大小限制 (10MB)
-- ✅ Docker 沙盒隔离
-
-## 📊 可观测性
-
-### 日志
-
-使用 Winston 结构化日志，支持：
-
-- 控制台输出（开发环境）
-- JSON 格式（生产环境）
-- 自动请求 ID 追踪
-- 错误堆栈记录
-
-### 监控
-
-- 健康检查端点: `/health`
-- 数据库连接状态
-- 服务启动时间和版本信息
+| 方法 | 路径 | 描述 |
+|------|------|------|
+| POST | `/api/chat/sessions` | 创建聊天会话 |
+| GET | `/api/chat/sessions/:id` | 获取会话详情 |
+| POST | `/api/chat/sessions/:id/messages` | 发送消息 |
+| GET | `/api/chat/sessions/:id/messages` | 获取消息历史 |
 
 ## 🧪 测试
 
+项目包含完整的测试套件：
+
+### 测试统计
+
+| 类型 | 数量 | 框架 |
+|------|------|------|
+| 后端单元测试 | 150+ | Vitest |
+| 后端集成测试 | 40+ | Vitest + Supertest |
+| 前端组件测试 | 20 | Vitest + Testing Library |
+| E2E 测试 | 10+ | Playwright |
+
+### 运行测试
+
 ```bash
-# 单元测试
+# 运行所有测试
 pnpm test
 
-# 监听模式
-pnpm test:watch
+# 运行后端测试（带覆盖率）
+cd packages/backend && pnpm test:coverage
 
-# 覆盖率报告
-pnpm test:coverage
+# 运行前端测试
+cd packages/frontend && pnpm test
+
+# 运行 E2E 测试
+pnpm test:e2e
 ```
 
-测试框架: Vitest + Supertest
+## 🏛️ 架构设计
 
-## 🚧 开发路线图
+### 后端分层架构
 
-- [ ] 前端应用开发 (React/Vue)
-- [ ] WebSocket 实时通信
-- [ ] 流式响应支持
-- [ ] 工具调用系统
-- [ ] 文件上传和管理
-- [ ] 工作区资源配额
-- [ ] 用户使用统计和计费
-- [ ] API 文档 (Swagger/OpenAPI)
-- [ ] 容器编排 (Kubernetes)
-- [ ] CI/CD 流水线
+```
+┌─────────────────────────────────────────┐
+│           API Routes Layer              │  路由定义和请求验证
+├─────────────────────────────────────────┤
+│         Controllers Layer               │  请求处理和响应格式化
+├─────────────────────────────────────────┤
+│          Services Layer                 │  业务逻辑和编排
+├─────────────────────────────────────────┤
+│        Repositories Layer               │  数据访问抽象
+├─────────────────────────────────────────┤
+│          Adapters Layer                 │  外部服务集成
+├─────────────────────────────────────────┤
+│      Prisma ORM / Database              │  数据持久化
+└─────────────────────────────────────────┘
+```
+
+### 前端架构
+
+```
+┌─────────────────────────────────────────┐
+│              Pages                      │  页面级组件和路由
+├─────────────────────────────────────────┤
+│            Components                   │  可复用 UI 组件
+├─────────────────────────────────────────┤
+│         Stores (Zustand)                │  全局状态管理
+├─────────────────────────────────────────┤
+│      Services / API Client              │  后端通信
+├─────────────────────────────────────────┤
+│        Hooks / Utilities                │  逻辑复用
+└─────────────────────────────────────────┘
+```
+
+### WebSocket 事件
+
+| 事件 | 方向 | 描述 |
+|------|------|------|
+| `connection` | 客户端→服务端 | 建立连接 |
+| `join:workspace` | 客户端→服务端 | 加入工作区房间 |
+| `file:changed` | 服务端→客户端 | 文件变更通知 |
+| `container:status` | 服务端→客户端 | 容器状态更新 |
+
+## 🔐 安全特性
+
+- ✅ **JWT 认证** - 访问令牌 + 刷新令牌机制
+- ✅ **密码加密** - bcrypt 哈希（成本因子 10）
+- ✅ **API Key 加密** - AES-256-GCM 加密存储
+- ✅ **安全头** - Helmet 中间件
+- ✅ **CORS 保护** - 可配置跨域策略
+- ✅ **速率限制** - 默认 15 分钟 100 请求
+- ✅ **输入验证** - Zod schema 验证
+- ✅ **XSS 防护** - 输出转义和 CSP
+
+## 🐳 Docker 服务
+
+| 服务 | 端口 | 凭据 |
+|------|------|------|
+| PostgreSQL | 5432 | `postgres` / `password` |
+| Redis | 6379 | - |
+| MinIO API | 9000 | `minioadmin` / `minioadmin` |
+| MinIO Console | 9001 | `minioadmin` / `minioadmin` |
+| Adminer | 8080 | - |
+
+## 📊 性能优化
+
+### 前端优化
+
+- **代码分割** - React.lazy 和动态导入
+- **Vendor 分包** - react-vendor, ui-vendor, editor-vendor
+- **压缩** - Gzip 和 Brotli 双压缩
+- **懒加载** - 路由级别懒加载
+
+### 后端优化
+
+- **缓存层** - Redis / 内存缓存服务
+- **连接池** - Prisma 连接池管理
+- **响应压缩** - compression 中间件
 
 ## 📝 开发规范
 
 - **代码风格**: ESLint + Prettier
-- **提交规范**: Conventional Commits
-- **分支策略**: Git Flow (main/develop/feature/*)
+- **提交规范**: [Conventional Commits](https://www.conventionalcommits.org/)
+- **分支策略**: Git Flow (`main` / `develop` / `feature/*`)
 - **TypeScript**: 严格模式
-- **模块系统**: ESM (所有导入需 `.js` 扩展名)
+- **模块系统**: ESM（导入需 `.js` 扩展名）
 
 ## 🤝 贡献指南
 
 1. Fork 本仓库
 2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
 3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 开启 Pull Request
+4. 推送分支 (`git push origin feature/amazing-feature`)
+5. 创建 Pull Request
+
+### 提交类型
+
+- `feat:` 新功能
+- `fix:` Bug 修复
+- `docs:` 文档更新
+- `style:` 代码格式化
+- `refactor:` 重构
+- `test:` 测试相关
+- `chore:` 构建/工具
 
 ## 📄 许可证
 
-MIT License
+[MIT License](LICENSE)
 
-## 🙏 致谢
+## 🔗 相关链接
 
-- [Google Gemini](https://ai.google.dev/) - AI 引擎
-- [Prisma](https://www.prisma.io/) - 数据库 ORM
-- [Express.js](https://expressjs.com/) - Web 框架
-
-## 📮 联系方式
-
-- 问题反馈: [GitHub Issues](https://github.com/your-org/gemini-web-platform/issues)
-- 项目文档: [Wiki](https://github.com/your-org/gemini-web-platform/wiki)
+- [Google Gemini API](https://ai.google.dev/)
+- [Prisma 文档](https://www.prisma.io/docs)
+- [Monaco Editor](https://microsoft.github.io/monaco-editor/)
+- [Socket.IO](https://socket.io/)
+- [Playwright](https://playwright.dev/)
 
 ---
 
-**注意**: 本项目当前处于早期开发阶段，API 可能会有变动。
+**版本**: 0.1.0 | **状态**: 开发中
