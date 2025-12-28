@@ -94,6 +94,20 @@ export const config = {
     sandboxMemoryLimit: env.SANDBOX_MEMORY_LIMIT,
     sandboxCpuLimit: env.SANDBOX_CPU_LIMIT,
   },
+
+  // Cache
+  cache: {
+    prefix: 'gemini:',
+    defaultTTL: 300, // 5 minutes
+  },
+
+  // Security
+  security: {
+    bcryptRounds: 10,
+    maxLoginAttempts: 5,
+    lockoutDuration: 15 * 60 * 1000, // 15 minutes
+    sessionTimeout: 24 * 60 * 60 * 1000, // 24 hours
+  },
 } as const;
 
 export { env };
