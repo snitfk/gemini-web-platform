@@ -264,9 +264,11 @@ export class GeminiService {
 
             try {
               const parsed = JSON.parse(jsonStr);
+              logger.debug('Parsed Gemini response chunk', { parsed });
               const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
               if (text) {
                 fullText += text;
+                logger.debug('Yielding content chunk', { textLength: text.length });
                 yield { type: 'content', content: text };
               }
             } catch (e) {

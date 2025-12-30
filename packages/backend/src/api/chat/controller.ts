@@ -118,11 +118,13 @@ export const sendMessageStream = asyncHandler(async (req: Request, res: Response
   try {
     // 流式生成
     for await (const event of chatService.sendMessage(sessionId, userId, message)) {
+      logger.debug('Sending SSE event', { event, sessionId });
       // 发送事件
       res.write(`data: ${JSON.stringify(event)}\n\n`);
 
       // 如果是完成或错误事件，结束流
       if (event.type === 'done' || event.type === 'error') {
+        logger.info('Stream ended', { type: event.type, sessionId });
         break;
       }
     }

@@ -141,14 +141,21 @@ export const chatService = {
             }
             try {
               const parsed = JSON.parse(data);
-              if (parsed.type === 'chunk') {
+              // 匹配后端的事件类型
+              if (parsed.type === 'content') {
                 onChunk(parsed.content);
-              } else if (parsed.type === 'complete') {
-                onComplete(parsed.data);
+              } else if (parsed.type === 'done') {
+                // done 事件表示流式传输完成,但没有完整响应数据
+                // 前端需要自己构造响应对象
+                onComplete(parsed.data || {});
               } else if (parsed.type === 'error') {
-                onError(new Error(parsed.message));
+                onError(new Error(parsed.error || 'Unknown error'));
+              } else if (parsed.type === 'connected') {
+                // 忽略连接消息
+                console.log('SSE connected');
               }
-            } catch {
+            } catch (e) {
+              console.error('Failed to parse SSE data:', e, data);
               // Skip invalid JSON
             }
           }

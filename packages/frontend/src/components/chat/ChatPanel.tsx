@@ -116,12 +116,11 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
         (chunk) => {
           appendStreamContent(chunk);
         },
-        (response) => {
+        () => {
+          // 流式传输完成
           setStreaming(false);
           clearStreamContent();
-          // Add the actual response message
-          addMessage(response.response);
-          // Invalidate to get updated data
+          // 刷新消息列表以获取最新的消息
           queryClient.invalidateQueries({ queryKey: ['chat-session', activeSessionId] });
         },
         (error) => {
