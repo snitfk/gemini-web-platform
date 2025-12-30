@@ -73,5 +73,6 @@ export async function apiRequest<T = unknown>(
   if (response.success === false) {
     throw new Error(response.error?.message || 'API request failed');
   }
-  return response.data as T;
+  // 直接返回 data 字段，如果 data 是 undefined 则返回整个 response（用于非标准响应）
+  return (response.data ?? response) as T;
 }

@@ -30,6 +30,7 @@ const envSchema = z.object({
 
   // Gemini API
   GEMINI_API_KEY: z.string().min(1),
+  GEMINI_API_BASE_URL: z.string().url().optional(),
 
   // JWT
   JWT_SECRET: z.string().min(32),

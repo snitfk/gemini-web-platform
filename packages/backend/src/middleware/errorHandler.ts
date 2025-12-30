@@ -23,6 +23,7 @@ export function errorHandler(
     path: req.path,
     method: req.method,
     ip: req.ip,
+    ...(err instanceof ValidationError && err.errors && { validationErrors: err.errors }),
   });
 
   // 处理不同类型的错误

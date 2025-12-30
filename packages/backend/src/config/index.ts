@@ -53,6 +53,7 @@ export const config = {
   // Gemini
   gemini: {
     apiKey: env.GEMINI_API_KEY,
+    baseUrl: env.GEMINI_API_BASE_URL,
   },
 
   // JWT

@@ -18,7 +18,7 @@ export class WorkspaceService {
   async create(userId: string, input: CreateWorkspaceInput) {
     // 检查工作区数量限制
     const count = await prisma.workspace.count({
-      where: { userId, status: 'active' },
+      where: { userId },
     });
 
     if (count >= WORKSPACE_LIMITS.maxPerUser) {
@@ -33,10 +33,6 @@ export class WorkspaceService {
         name: input.name,
         description: input.description,
         settings: input.settings || {},
-        status: 'active',
-        storageUsed: 0,
-        config: {},
-        lastUsedAt: new Date(),
       },
     });
 
@@ -53,17 +49,14 @@ export class WorkspaceService {
 
     const [workspaces, total] = await Promise.all([
       prisma.workspace.findMany({
-        where: { userId, status: 'active' },
+        where: { userId },
         ...params,
         orderBy: params.orderBy || { updatedAt: 'desc' },
         select: {
           id: true,
           name: true,
           description: true,
-          status: true,
-          containerId: true,
-          storageUsed: true,
-          lastUsedAt: true,
+          settings: true,
           createdAt: true,
           updatedAt: true,
           _count: {
@@ -74,7 +67,7 @@ export class WorkspaceService {
           },
         },
       }),
-      prisma.workspace.count({ where: { userId, status: 'active' } }),
+      prisma.workspace.count({ where: { userId } }),
     ]);
 
     return {
@@ -108,10 +101,6 @@ export class WorkspaceService {
       throw new ForbiddenError('You do not have access to this workspace');
     }
 
-    if (workspace.status === 'deleted') {
-      throw new NotFoundError('Workspace has been deleted');
-    }
-
     return workspace;
   }
 
@@ -133,132 +122,18 @@ export class WorkspaceService {
   }
 
   /**
-   * 删除工作区（软删除）
+   * 删除工作区
    */
   async delete(userId: string, workspaceId: string) {
     // 检查权限
-    const workspace = await this.getById(userId, workspaceId);
+    await this.getById(userId, workspaceId);
 
-    // 如果有运行中的容器，先停止
-    if (workspace.containerId) {
-      logger.info('Workspace has running container, will be stopped', {
-        workspaceId,
-        containerId: workspace.containerId,
-      });
-      // TODO: 调用 ContainerService.stopContainer()
-    }
-
-    await prisma.workspace.update({
+    // 删除工作区（硬删除，Prisma 会级联删除相关数据）
+    await prisma.workspace.delete({
       where: { id: workspaceId },
-      data: { status: 'deleted' },
     });
 
     logger.info('Workspace deleted', { workspaceId, userId });
-  }
-
-  /**
-   * 启动工作区
-   */
-  async start(userId: string, workspaceId: string) {
-    const workspace = await this.getById(userId, workspaceId);
-
-    if (workspace.status !== 'active') {
-      throw new BadRequestError('Workspace is not in active status');
-    }
-
-    // 更新最后使用时间
-    await prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { lastUsedAt: new Date() },
-    });
-
-    // TODO: 创建或启动容器
-    logger.info('Workspace started', { workspaceId, userId });
-
-    return { message: 'Workspace started' };
-  }
-
-  /**
-   * 停止工作区
-   */
-  async stop(userId: string, workspaceId: string) {
-    const workspace = await this.getById(userId, workspaceId);
-
-    if (!workspace.containerId) {
-      logger.info('Workspace has no container to stop', { workspaceId });
-      return { message: 'Workspace has no running container' };
-    }
-
-    // TODO: 停止容器
-    logger.info('Workspace stopped', { workspaceId, userId });
-
-    return { message: 'Workspace stopped' };
-  }
-
-  /**
-   * 归档工作区
-   */
-  async archive(userId: string, workspaceId: string) {
-    const workspace = await this.getById(userId, workspaceId);
-
-    if (workspace.status !== 'active') {
-      throw new BadRequestError('Only active workspaces can be archived');
-    }
-
-    // 如果有运行中的容器，先停止
-    if (workspace.containerId) {
-      // TODO: 停止容器
-    }
-
-    const archivedWorkspace = await prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { status: 'archived' },
-    });
-
-    logger.info('Workspace archived', { workspaceId, userId });
-
-    return archivedWorkspace;
-  }
-
-  /**
-   * 恢复已归档的工作区
-   */
-  async restore(userId: string, workspaceId: string) {
-    const workspace = await prisma.workspace.findUnique({
-      where: { id: workspaceId },
-    });
-
-    if (!workspace) {
-      throw new NotFoundError('Workspace not found');
-    }
-
-    if (workspace.userId !== userId) {
-      throw new ForbiddenError('You do not have access to this workspace');
-    }
-
-    if (workspace.status !== 'archived') {
-      throw new BadRequestError('Workspace is not archived');
-    }
-
-    // 检查活跃工作区数量
-    const count = await prisma.workspace.count({
-      where: { userId, status: 'active' },
-    });
-
-    if (count >= WORKSPACE_LIMITS.maxPerUser) {
-      throw new BadRequestError(
-        `Cannot restore: maximum number of active workspaces reached (${WORKSPACE_LIMITS.maxPerUser})`
-      );
-    }
-
-    const restoredWorkspace = await prisma.workspace.update({
-      where: { id: workspaceId },
-      data: { status: 'active' },
-    });
-
-    logger.info('Workspace restored', { workspaceId, userId });
-
-    return restoredWorkspace;
   }
 }
 

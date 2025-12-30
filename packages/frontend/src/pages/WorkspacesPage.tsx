@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, MoreVertical, Trash2, Play, Archive, RotateCcw, Loader2 } from 'lucide-react';
+import { Plus, MoreVertical, Trash2, Play, Loader2 } from 'lucide-react';
 import { formatRelativeTime } from '@/lib/utils';
 
 export default function WorkspacesPage() {
@@ -44,9 +44,21 @@ export default function WorkspacesPage() {
       setIsCreateDialogOpen(false);
       setNewWorkspaceName('');
       toast({ title: 'Success', description: 'Workspace created successfully' });
-      navigate(`/workspace/${workspace.id}`);
+
+      // 导航到新创建的工作区
+      if (workspace && workspace.id) {
+        navigate(`/workspace/${workspace.id}`);
+      } else {
+        console.error('Workspace object is missing id:', workspace);
+        toast({
+          title: 'Warning',
+          description: 'Workspace created but navigation failed. Please refresh the page.',
+          variant: 'destructive'
+        });
+      }
     },
     onError: (error: Error) => {
+      console.error('Create workspace error:', error);
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
@@ -59,22 +71,6 @@ export default function WorkspacesPage() {
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const archiveMutation = useMutation({
-    mutationFn: workspaceService.archive,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      toast({ title: 'Success', description: 'Workspace archived' });
-    },
-  });
-
-  const restoreMutation = useMutation({
-    mutationFn: workspaceService.restore,
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['workspaces'] });
-      toast({ title: 'Success', description: 'Workspace restored' });
     },
   });
 
@@ -164,8 +160,6 @@ export default function WorkspacesPage() {
               workspace={workspace}
               onOpen={handleOpenWorkspace}
               onDelete={(id) => deleteMutation.mutate(id)}
-              onArchive={(id) => archiveMutation.mutate(id)}
-              onRestore={(id) => restoreMutation.mutate(id)}
             />
           ))}
         </div>
@@ -178,11 +172,9 @@ interface WorkspaceCardProps {
   workspace: Workspace;
   onOpen: (workspace: Workspace) => void;
   onDelete: (id: string) => void;
-  onArchive: (id: string) => void;
-  onRestore: (id: string) => void;
 }
 
-function WorkspaceCard({ workspace, onOpen, onDelete, onArchive, onRestore }: WorkspaceCardProps) {
+function WorkspaceCard({ workspace, onOpen, onDelete }: WorkspaceCardProps) {
   return (
     <Card
       className="hover:shadow-lg transition-shadow cursor-pointer"
@@ -201,17 +193,6 @@ function WorkspaceCard({ workspace, onOpen, onDelete, onArchive, onRestore }: Wo
               <Play className="mr-2 h-4 w-4" />
               Open
             </DropdownMenuItem>
-            {workspace.status === 'active' ? (
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onArchive(workspace.id); }}>
-                <Archive className="mr-2 h-4 w-4" />
-                Archive
-              </DropdownMenuItem>
-            ) : (
-              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onRestore(workspace.id); }}>
-                <RotateCcw className="mr-2 h-4 w-4" />
-                Restore
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={(e) => { e.stopPropagation(); onDelete(workspace.id); }}
               className="text-destructive"
@@ -224,16 +205,12 @@ function WorkspaceCard({ workspace, onOpen, onDelete, onArchive, onRestore }: Wo
       </CardHeader>
       <CardContent>
         <CardDescription>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                workspace.status === 'active'
-                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                  : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-              }`}
-            >
-              {workspace.status}
-            </span>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>{workspace._count?.chatSessions || 0} chats</span>
+              <span>·</span>
+              <span>{workspace._count?.files || 0} files</span>
+            </div>
             <span className="text-xs text-muted-foreground">
               Updated {formatRelativeTime(workspace.updatedAt)}
             </span>

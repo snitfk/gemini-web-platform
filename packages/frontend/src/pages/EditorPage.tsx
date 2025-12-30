@@ -84,15 +84,11 @@ export default function EditorPage() {
       <div className="h-10 border-b px-4 flex items-center justify-between bg-muted/40 shrink-0">
         <div className="flex items-center gap-2">
           <span className="font-medium">{workspace.name}</span>
-          <span
-            className={`text-xs px-2 py-0.5 rounded-full ${
-              workspace.status === 'active'
-                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                : 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200'
-            }`}
-          >
-            {workspace.status}
-          </span>
+          {workspace.description && (
+            <span className="text-xs text-muted-foreground">
+              {workspace.description}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {activeTab?.isDirty && (

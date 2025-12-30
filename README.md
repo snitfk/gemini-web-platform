@@ -116,17 +116,35 @@ docker-compose up -d
 
 ```bash
 cd packages/backend
-pnpm prisma migrate dev
+DATABASE_URL="postgresql://gemini-web-platform-dev:gemini-web-platform-dev_1229@101.43.40.232:5432/gemini-web-platform-dev" pnpm prisma migrate deploy
 ```
+
+> 如果使用本地数据库,请修改 `.env` 中的 `DATABASE_URL` 为本地连接字符串
 
 6. **启动开发服务器**
 
+**方式一: 分别启动前后端 (推荐)**
+
 ```bash
-# 从项目根目录
-pnpm dev:backend
+# 终端 1: 启动后端服务
+cd packages/backend
+pnpm dev
+
+# 终端 2: 启动前端服务
+cd packages/frontend
+pnpm dev
 ```
 
-后端服务将运行在 `http://localhost:3000`
+**方式二: 同时启动所有服务**
+
+```bash
+# 从项目根目录
+pnpm dev
+```
+
+服务访问地址:
+- 前端: `http://localhost:3000`
+- 后端: `http://localhost:5000`
 
 ### 快速设置脚本
 
@@ -184,9 +202,10 @@ pnpm prisma generate
 
 启动后端服务后，访问：
 
-- **健康检查**: `GET http://localhost:3000/health`
-- **API 信息**: `GET http://localhost:3000/api`
-- **认证接口**: `http://localhost:3000/api/auth/*`
+- **健康检查**: `GET http://localhost:5000/health`
+- **API 信息**: `GET http://localhost:5000/api`
+- **认证接口**: `http://localhost:5000/api/auth/*`
+- **工作区接口**: `http://localhost:5000/api/workspaces/*`
 
 ## 🗄️ 数据模型
 
@@ -208,13 +227,14 @@ pnpm prisma generate
 | 变量名 | 说明 | 默认值 |
 |--------|------|--------|
 | `NODE_ENV` | 运行环境 | `development` |
-| `BACKEND_PORT` | 后端端口 | `3000` |
+| `BACKEND_PORT` | 后端端口 | `5000` |
+| `FRONTEND_PORT` | 前端端口 | `3000` |
 | `DATABASE_URL` | PostgreSQL 连接串 | - |
 | `REDIS_URL` | Redis 连接串 | `redis://localhost:6379` |
 | `GEMINI_API_KEY` | Gemini API 密钥 | **必填** |
 | `JWT_SECRET` | JWT 签名密钥 | **必填** |
 | `JWT_EXPIRES_IN` | JWT 过期时间 | `7d` |
-| `CORS_ORIGIN` | CORS 允许源 | `http://localhost:5173` |
+| `CORS_ORIGIN` | CORS 允许源 | `http://localhost:3000` |
 | `LOG_LEVEL` | 日志级别 | `debug` |
 
 完整配置参考 `.env.example`
@@ -338,6 +358,139 @@ MIT License
 
 - 问题反馈: [GitHub Issues](https://github.com/your-org/gemini-web-platform/issues)
 - 项目文档: [Wiki](https://github.com/your-org/gemini-web-platform/wiki)
+
+## ❓ 常见问题
+
+### 1. CORS 跨域错误
+
+**问题**: 前端请求后端时出现 CORS 错误
+
+**解决方案**:
+- 检查 `.env` 文件中的 `CORS_ORIGIN` 配置
+- 确保包含前端运行的地址 (默认: `http://localhost:3000`)
+- 修改后需要重启后端服务
+
+```env
+CORS_ORIGIN=http://localhost:3000,http://127.0.0.1:3000
+```
+
+### 2. 端口被占用
+
+**问题**: `Error: listen EADDRINUSE: address already in use`
+
+**解决方案**:
+
+**Windows**:
+```bash
+# 查找占用端口的进程
+netstat -ano | findstr :5000
+# 或使用 PowerShell
+Get-NetTCPConnection -LocalPort 5000
+
+# 结束进程 (替换 <PID> 为实际进程ID)
+taskkill /PID <PID> /F
+# 或使用 PowerShell
+Stop-Process -Id <PID> -Force
+```
+
+**Linux/macOS**:
+```bash
+# 查找占用端口的进程
+lsof -i :5000
+
+# 结束进程
+kill -9 <PID>
+```
+
+### 3. 数据库连接失败
+
+**问题**: `Database connection failed`
+
+**解决方案**:
+1. 确保 Docker 服务已启动: `docker ps`
+2. 检查数据库连接字符串是否正确
+3. 验证数据库容器是否健康:
+   ```bash
+   docker logs gemini-postgres
+   ```
+
+### 4. 注册时密码验证失败
+
+**问题**: `Validation failed: Password must...`
+
+**解决方案**: 密码必须满足以下要求:
+- 至少 8 个字符
+- 包含至少一个大写字母 (A-Z)
+- 包含至少一个小写字母 (a-z)
+- 包含至少一个数字 (0-9)
+
+示例有效密码: `Password123`, `MySecure1`
+
+### 5. Workspace 创建后列表为空
+
+**问题**: `Query data cannot be undefined`
+
+**解决方案**:
+- 此问题已在最新版本修复
+- 如仍遇到,请刷新页面或清除浏览器缓存
+- 检查浏览器控制台和后端日志获取详细错误信息
+
+### 6. 前端编译错误
+
+**问题**: TypeScript 类型错误
+
+**解决方案**:
+```bash
+# 重新生成 Prisma Client
+cd packages/backend
+pnpm prisma generate
+
+# 清理并重新安装依赖
+cd ../..
+pnpm clean
+pnpm install
+```
+
+### 7. Docker 服务无法启动
+
+**问题**: Docker Compose 启动失败
+
+**解决方案**:
+1. 确保 Docker Desktop 正在运行
+2. 检查端口是否被占用 (5432, 6379, 9000, 9001, 8080)
+3. 查看 Docker 日志:
+   ```bash
+   cd infrastructure/docker
+   docker-compose logs
+   ```
+4. 重新创建容器:
+   ```bash
+   docker-compose down -v
+   docker-compose up -d
+   ```
+
+### 8. 热重载不生效
+
+**问题**: 修改代码后服务没有自动重启
+
+**解决方案**:
+- **后端**: 使用 `tsx watch` 已支持热重载
+- **前端**: Vite 已内置 HMR
+- 如仍不生效,手动重启服务
+
+### 9. 获取更多帮助
+
+如果以上方案无法解决你的问题:
+
+1. 查看完整错误日志
+2. 检查 `packages/backend/src/utils/logger.ts` 的日志输出
+3. 在 [GitHub Issues](https://github.com/your-org/gemini-web-platform/issues) 提交问题
+4. 提供以下信息:
+   - 操作系统和版本
+   - Node.js 版本 (`node -v`)
+   - pnpm 版本 (`pnpm -v`)
+   - 完整的错误日志
+   - 复现步骤
 
 ---
 

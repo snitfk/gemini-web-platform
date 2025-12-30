@@ -63,10 +63,28 @@ export default function LoginPage() {
       }
 
       navigate('/workspaces');
-    } catch (error) {
+    } catch (error: any) {
+      // 处理验证错误
+      let errorMessage = 'Authentication failed';
+
+      if (error?.response?.data?.error) {
+        const { message, errors } = error.response.data.error;
+
+        if (errors && Array.isArray(errors)) {
+          // 显示所有验证错误
+          errorMessage = errors.map((err: any) =>
+            `${err.path}: ${err.message}`
+          ).join('\n');
+        } else {
+          errorMessage = message || errorMessage;
+        }
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Authentication failed',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -122,6 +140,11 @@ export default function LoginPage() {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
+            {isSignup && (
+              <p className="text-xs text-muted-foreground">
+                Must be at least 8 characters with uppercase, lowercase, and numbers
+              </p>
+            )}
           </div>
 
           {isSignup && (

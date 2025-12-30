@@ -53,7 +53,7 @@ export interface CreateSessionRequest {
 
 export const chatService = {
   async listSessions(workspaceId: string): Promise<{ sessions: ChatSession[] }> {
-    return apiRequest({
+    return apiRequest<{ sessions: ChatSession[] }>({
       method: 'GET',
       url: '/chat/sessions',
       params: { workspaceId },
@@ -61,14 +61,14 @@ export const chatService = {
   },
 
   async getSession(sessionId: string): Promise<{ session: ChatSession; messages: Message[] }> {
-    return apiRequest({
+    return apiRequest<{ session: ChatSession; messages: Message[] }>({
       method: 'GET',
       url: `/chat/sessions/${sessionId}`,
     });
   },
 
-  async createSession(data: CreateSessionRequest): Promise<{ session: ChatSession }> {
-    return apiRequest({
+  async createSession(data: CreateSessionRequest): Promise<ChatSession> {
+    return apiRequest<ChatSession>({
       method: 'POST',
       url: '/chat/sessions',
       data,
@@ -98,8 +98,10 @@ export const chatService = {
     onError: (error: Error) => void
   ): Promise<void> {
     const token = localStorage.getItem('accessToken');
+    const { env } = await import('@/lib/env');
+    const baseURL = env.VITE_API_BASE_URL || '/api';
 
-    const response = await fetch(`/api/chat/sessions/${sessionId}/messages/stream`, {
+    const response = await fetch(`${baseURL}/chat/sessions/${sessionId}/stream`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

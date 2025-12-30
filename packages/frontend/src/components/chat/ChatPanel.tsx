@@ -55,9 +55,9 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
   // Create session mutation
   const createSessionMutation = useMutation({
     mutationFn: () => chatService.createSession({ workspaceId }),
-    onSuccess: (data) => {
+    onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: ['chat-sessions', workspaceId] });
-      setActiveSession(data.session.id);
+      setActiveSession(session.id);
       setMessages([]);
     },
     onError: (error: Error) => {

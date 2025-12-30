@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker compose:*)",
+      "Bash(cat:*)",
+      "Bash(pnpm prisma migrate deploy:*)",
+      "Bash(echo:*)",
+      "Bash(DATABASE_URL=\"postgresql://gemini-web-platform-dev:gemini-web-platform-dev_1229@101.43.40.232:5432/gemini-web-platform-dev\" pnpm prisma migrate deploy:*)",
+      "Bash(pnpm dev)",
+      "Bash(pnpm add:*)",
+      "Bash(curl:*)",
+      "Bash(docker --version:*)",
+      "Bash(where:*)",
+      "Bash(\"/c/Program Files/Docker/Docker/resources/bin/docker.exe\" --version)",
+      "Bash(docker ps:*)",
+      "Bash(DATABASE_URL=\"postgresql://gemini:gemini_password@localhost:5432/gemini_web\" pnpm prisma migrate deploy:*)",
+      "Bash(DATABASE_URL=\"postgresql://gemini:gemini_password@localhost:5432/gemini_web\" pnpm prisma migrate:*)",
+      "Bash(pnpm prisma generate:*)",
+      "Bash(docker exec:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill //F //PID 30880 & taskkill //F //PID 24864\")",
+      "Bash(powershell -Command \"Stop-Process -Id 39484 -Force\")",
+      "Bash(powershell -Command \"Get-Process | Where-Object {$_ProcessName -eq ''node''} | Select-Object Id, ProcessName\")",
+      "Bash(tasklist:*)",
+      "Bash(powershell:*)",
+      "Bash(set:*)",
+      "Bash(set HTTPS_PROXY=)",
+      "Bash(set http_proxy=)",
+      "Bash(set https_proxy=)",
+      "Bash(timeout 3 cmd:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

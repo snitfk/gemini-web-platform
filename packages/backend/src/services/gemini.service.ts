@@ -39,14 +39,20 @@ export class GeminiService {
   private history: Content[] = [];
   private tools: Tool[] = [];
 
-  constructor(clientConfig?: Partial<GeminiClientConfig>) {
-    const apiKey = clientConfig?.apiKey || config.gemini.apiKey;
+  private apiKey: string;
+  private baseUrl: string;
 
-    if (!apiKey) {
+  constructor(clientConfig?: Partial<GeminiClientConfig>) {
+    this.apiKey = clientConfig?.apiKey || config.gemini.apiKey;
+
+    if (!this.apiKey) {
       throw new Error('Gemini API key is required');
     }
 
-    this.genAI = new GoogleGenerativeAI(apiKey);
+    // 使用自定义的 Gemini API 代理地址或默认地址
+    this.baseUrl = config.gemini.baseUrl || 'https://generativelanguage.googleapis.com';
+
+    this.genAI = new GoogleGenerativeAI(this.apiKey);
 
     // 转换工具定义
     if (clientConfig?.tools) {
@@ -79,6 +85,13 @@ export class GeminiService {
         parts: [{ text: message }],
       });
 
+      // 如果使用自定义 baseUrl,使用直接的 HTTP 请求
+      if (config.gemini.baseUrl) {
+        yield* this.sendMessageStreamDirect(message);
+        return;
+      }
+
+      // 否则使用 Google SDK
       // 创建聊天会话
       const chat = this.model.startChat({
         history: this.history.slice(0, -1), // 不包括刚添加的消息
@@ -128,6 +141,164 @@ export class GeminiService {
       yield {
         type: 'error',
         error: error instanceof Error ? error.message : 'Unknown Gemini API error',
+      };
+    }
+  }
+
+  /**
+   * 使用直接 HTTP 请求发送消息(用于自定义 baseUrl)
+   */
+  private async *sendMessageStreamDirect(message: string): AsyncGenerator<ChatEvent> {
+    try {
+      const model = 'gemini-2.0-flash-exp';
+      const url = `${this.baseUrl}/v1beta/models/${model}:streamGenerateContent?key=${this.apiKey}`;
+
+      // 准备请求体
+      const requestBody = {
+        contents: this.history,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 8192,
+        },
+      };
+
+      logger.info('Calling Gemini API', { url, baseUrl: this.baseUrl });
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      logger.info('Gemini API response received', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error('Gemini API error response', { status: response.status, body: errorText });
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullText = '';
+      let inArray = false;
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // 检测数组开始
+        if (!inArray && buffer.trimStart().startsWith('[')) {
+          inArray = true;
+          buffer = buffer.trimStart().slice(1); // 移除开头的 [
+        }
+
+        // 处理缓冲区中的 JSON 对象
+        while (buffer.length > 0) {
+          const trimmed = buffer.trimStart();
+
+          // 跳过逗号和空白
+          if (trimmed.startsWith(',')) {
+            buffer = trimmed.slice(1);
+            continue;
+          }
+
+          // 检查是否是数组结束
+          if (trimmed.startsWith(']')) {
+            buffer = trimmed.slice(1);
+            break;
+          }
+
+          // 尝试提取并解析一个 JSON 对象
+          let braceCount = 0;
+          let inString = false;
+          let escaped = false;
+          let jsonEnd = -1;
+
+          for (let i = 0; i < trimmed.length; i++) {
+            const char = trimmed[i];
+
+            if (escaped) {
+              escaped = false;
+              continue;
+            }
+
+            if (char === '\\') {
+              escaped = true;
+              continue;
+            }
+
+            if (char === '"') {
+              inString = !inString;
+              continue;
+            }
+
+            if (!inString) {
+              if (char === '{') braceCount++;
+              else if (char === '}') {
+                braceCount--;
+                if (braceCount === 0) {
+                  jsonEnd = i + 1;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (jsonEnd > 0) {
+            const jsonStr = trimmed.substring(0, jsonEnd);
+            buffer = trimmed.substring(jsonEnd);
+
+            try {
+              const parsed = JSON.parse(jsonStr);
+              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                fullText += text;
+                yield { type: 'content', content: text };
+              }
+            } catch (e) {
+              logger.error('Failed to parse JSON chunk', { error: e, jsonStr: jsonStr.substring(0, 100) });
+            }
+          } else {
+            // 没有完整的 JSON 对象,等待更多数据
+            break;
+          }
+        }
+      }
+
+      // 添加模型响应到历史
+      if (fullText) {
+        this.history.push({
+          role: 'model',
+          parts: [{ text: fullText }],
+        });
+      }
+
+      yield { type: 'done' };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorStack = error instanceof Error ? error.stack : undefined;
+      logger.error('Gemini API direct request error', {
+        message: errorMessage,
+        stack: errorStack,
+        error: error
+      });
+      yield {
+        type: 'error',
+        error: errorMessage,
       };
     }
   }
