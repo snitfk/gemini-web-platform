@@ -18,18 +18,20 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
   const { toast } = useToast();
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
-  const {
-    activeSessionId,
-    setActiveSession,
-    messages,
-    setMessages,
-    addMessage,
-    isStreaming,
-    streamingContent,
-    setStreaming,
-    appendStreamContent,
-    clearStreamContent,
-  } = useChatStore();
+
+  // 从 store 中获取状态 - 使用选择器确保正确订阅
+  const activeSessionId = useChatStore((state) => state.activeSessionId);
+  const messages = useChatStore((state) => state.messages);
+  const isStreaming = useChatStore((state) => state.isStreaming);
+  const streamingContent = useChatStore((state) => state.streamingContent);
+
+  // 获取 actions
+  const setActiveSession = useChatStore((state) => state.setActiveSession);
+  const setMessages = useChatStore((state) => state.setMessages);
+  const addMessage = useChatStore((state) => state.addMessage);
+  const setStreaming = useChatStore((state) => state.setStreaming);
+  const appendStreamContent = useChatStore((state) => state.appendStreamContent);
+  const clearStreamContent = useChatStore((state) => state.clearStreamContent);
 
   // Fetch sessions
   const { data: sessionsData } = useQuery({
@@ -46,11 +48,35 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
     enabled: !!activeSessionId,
   });
 
+  // 用于跟踪是否等待消息加载
+  const [waitingForMessages, setWaitingForMessages] = useState(false);
+
   useEffect(() => {
     if (sessionData?.messages) {
+      const currentCount = messages.length;
+      const newCount = sessionData.messages.length;
+
+      console.log('[ChatPanel] Updating messages from query', {
+        newMessagesCount: newCount,
+        currentMessagesCount: currentCount,
+        isStreaming,
+        waitingForMessages,
+      });
+
+      // 先检查是否需要停止流式状态,在更新消息之前
+      if (waitingForMessages && newCount > currentCount) {
+        console.log('[ChatPanel] Messages loaded, stopping streaming');
+        setWaitingForMessages(false);
+        setStreaming(false);
+        // 延迟清空流式内容
+        setTimeout(() => {
+          clearStreamContent();
+        }, 100);
+      }
+
       setMessages(sessionData.messages);
     }
-  }, [sessionData, setMessages]);
+  }, [sessionData, setMessages, isStreaming, messages.length, waitingForMessages, setStreaming, clearStreamContent]);
 
   // Create session mutation
   const createSessionMutation = useMutation({
@@ -87,13 +113,23 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
     }
   }, [messages, streamingContent]);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[ChatPanel] State updated', {
+      isStreaming,
+      streamingContent,
+      streamingContentLength: streamingContent.length,
+      messagesCount: messages.length,
+    });
+  }, [isStreaming, streamingContent, messages]);
+
   const handleSendMessage = async () => {
     if (!input.trim() || !activeSessionId || isStreaming) return;
 
     const userMessage = input.trim();
     setInput('');
 
-    // Add user message optimistically
+    // 乐观添加用户消息
     const tempUserMessage: Message = {
       id: `temp-${Date.now()}`,
       chatSessionId: activeSessionId,
@@ -110,26 +146,33 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
     clearStreamContent();
 
     try {
+      // 发送消息并开始流式传输
       await chatService.streamMessage(
         activeSessionId,
         { message: userMessage },
         (chunk) => {
+          console.log('[ChatPanel] Received chunk', { chunk });
           appendStreamContent(chunk);
         },
-        () => {
+        async () => {
           // 流式传输完成
-          setStreaming(false);
-          clearStreamContent();
-          // 刷新消息列表以获取最新的消息
-          queryClient.invalidateQueries({ queryKey: ['chat-session', activeSessionId] });
+          console.log('[ChatPanel] Stream completed');
+
+          // 设置等待状态,保持 isStreaming = true 直到新消息加载完成
+          setWaitingForMessages(true);
+
+          // 刷新消息列表以获取保存的消息
+          await queryClient.invalidateQueries({ queryKey: ['chat-session', activeSessionId] });
         },
         (error) => {
+          console.error('[ChatPanel] Stream error', { error });
           setStreaming(false);
           clearStreamContent();
           toast({ title: 'Error', description: error.message, variant: 'destructive' });
         }
       );
     } catch (error) {
+      console.error('[ChatPanel] Exception in stream', { error });
       setStreaming(false);
       clearStreamContent();
       toast({
@@ -215,23 +258,32 @@ export default function ChatPanel({ workspaceId }: ChatPanelProps) {
           </div>
         ) : (
           <div className="space-y-4">
+            {console.log('[ChatPanel] Rendering messages', {
+              messagesCount: messages.length,
+              isStreaming,
+              hasStreamingContent: !!streamingContent,
+              streamingContent,
+            })}
             {messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))}
             {isStreaming && streamingContent && (
-              <MessageBubble
-                message={{
-                  id: 'streaming',
-                  chatSessionId: activeSessionId,
-                  role: 'assistant',
-                  content: streamingContent,
-                  metadata: {},
-                  promptTokens: null,
-                  completionTokens: null,
-                  createdAt: new Date().toISOString(),
-                }}
-                isStreaming
-              />
+              <>
+                {console.log('[ChatPanel] Rendering streaming message', { streamingContent })}
+                <MessageBubble
+                  message={{
+                    id: 'streaming',
+                    chatSessionId: activeSessionId,
+                    role: 'assistant',
+                    content: streamingContent,
+                    metadata: {},
+                    promptTokens: null,
+                    completionTokens: null,
+                    createdAt: new Date().toISOString(),
+                  }}
+                  isStreaming
+                />
+              </>
             )}
           </div>
         )}
@@ -275,8 +327,14 @@ interface MessageBubbleProps {
 function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
+  console.log('[MessageBubble] Rendering', {
+    role: message.role,
+    content: message.content.substring(0, 50),
+    isStreaming,
+  });
+
   return (
-    <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : '')}>
+    <div className={cn('flex gap-2', isUser ? 'flex-row-reverse' : '')} style={{ border: '2px solid red', padding: '4px' }}>
       <div
         className={cn(
           'w-7 h-7 rounded-full flex items-center justify-center shrink-0',
@@ -290,6 +348,7 @@ function MessageBubble({ message, isStreaming }: MessageBubbleProps) {
           'max-w-[80%] rounded-lg px-3 py-2 text-sm',
           isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'
         )}
+        style={{ border: '1px solid blue' }}
       >
         <p className="whitespace-pre-wrap">{message.content}</p>
         {isStreaming && (

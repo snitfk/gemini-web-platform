@@ -209,6 +209,11 @@ export class ChatService {
       let hasError = false;
 
       for await (const event of client.sendMessageStream(message)) {
+        // 不要立即 yield done 事件,等消息保存后再发送
+        if (event.type === 'done') {
+          continue; // 跳过 done 事件,稍后再发送
+        }
+
         yield event;
 
         if (event.type === 'content' && event.content) {
@@ -223,6 +228,7 @@ export class ChatService {
       // 保存 AI 回复
       if (!hasError && fullResponse) {
         await this.saveMessage(sessionId, 'assistant', fullResponse);
+        logger.info('AI response saved', { sessionId, responseLength: fullResponse.length });
       }
 
       // 更新会话时间
@@ -230,6 +236,9 @@ export class ChatService {
         where: { id: sessionId },
         data: { updatedAt: new Date() },
       });
+
+      // 现在发送 done 事件
+      yield { type: 'done' };
 
     } catch (error) {
       logger.error('Error in sendMessage', {

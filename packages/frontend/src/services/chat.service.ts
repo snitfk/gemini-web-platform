@@ -101,6 +101,8 @@ export const chatService = {
     const { env } = await import('@/lib/env');
     const baseURL = env.VITE_API_BASE_URL || '/api';
 
+    console.log('[StreamMessage] Starting stream', { sessionId, baseURL });
+
     const response = await fetch(`${baseURL}/chat/sessions/${sessionId}/stream`, {
       method: 'POST',
       headers: {
@@ -109,6 +111,8 @@ export const chatService = {
       },
       body: JSON.stringify(data),
     });
+
+    console.log('[StreamMessage] Response received', { status: response.status, ok: response.ok });
 
     if (!response.ok) {
       onError(new Error(`HTTP error! status: ${response.status}`));
@@ -127,41 +131,57 @@ export const chatService = {
     try {
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        console.log('[StreamMessage] Read chunk', { done, valueLength: value?.length });
+
+        if (done) {
+          console.log('[StreamMessage] Stream finished');
+          break;
+        }
 
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
 
+        console.log('[StreamMessage] Processing lines', { lineCount: lines.length });
+
         for (const line of lines) {
+          console.log('[StreamMessage] Processing line', { line });
+
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
             if (data === '[DONE]') {
+              console.log('[StreamMessage] Received [DONE]');
               continue;
             }
             try {
               const parsed = JSON.parse(data);
+              console.log('[StreamMessage] Parsed event', { parsed });
+
               // 匹配后端的事件类型
               if (parsed.type === 'content') {
+                console.log('[StreamMessage] Calling onChunk', { content: parsed.content });
                 onChunk(parsed.content);
               } else if (parsed.type === 'done') {
+                console.log('[StreamMessage] Calling onComplete');
                 // done 事件表示流式传输完成,但没有完整响应数据
                 // 前端需要自己构造响应对象
                 onComplete(parsed.data || {});
               } else if (parsed.type === 'error') {
+                console.error('[StreamMessage] Received error event', { error: parsed.error });
                 onError(new Error(parsed.error || 'Unknown error'));
               } else if (parsed.type === 'connected') {
                 // 忽略连接消息
-                console.log('SSE connected');
+                console.log('[StreamMessage] SSE connected');
               }
             } catch (e) {
-              console.error('Failed to parse SSE data:', e, data);
+              console.error('[StreamMessage] Failed to parse SSE data:', e, data);
               // Skip invalid JSON
             }
           }
         }
       }
     } catch (error) {
+      console.error('[StreamMessage] Stream error', error);
       onError(error instanceof Error ? error : new Error('Stream error'));
     }
   },

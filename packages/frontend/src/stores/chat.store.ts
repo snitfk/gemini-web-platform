@@ -68,14 +68,24 @@ export const useChatStore = create<ChatState>((set) => ({
       messages: [...state.messages, message],
     })),
 
-  setStreaming: (isStreaming) => set({ isStreaming }),
+  setStreaming: (isStreaming) => {
+    console.log('[ChatStore] setStreaming', { isStreaming });
+    set({ isStreaming });
+  },
 
-  appendStreamContent: (content) =>
-    set((state) => ({
-      streamingContent: state.streamingContent + content,
-    })),
+  appendStreamContent: (content) => {
+    console.log('[ChatStore] appendStreamContent', { content });
+    set((state) => {
+      const newContent = state.streamingContent + content;
+      console.log('[ChatStore] New streaming content', { newContent, length: newContent.length });
+      return { streamingContent: newContent };
+    });
+  },
 
-  clearStreamContent: () => set({ streamingContent: '' }),
+  clearStreamContent: () => {
+    console.log('[ChatStore] clearStreamContent');
+    set({ streamingContent: '' });
+  },
 
   setChatPanelWidth: (width) => set({ chatPanelWidth: width }),
 
